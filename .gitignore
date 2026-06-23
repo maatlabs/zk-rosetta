@@ -1,0 +1,28 @@
+# Rust / Cargo build artifacts
+/target
+
+# Profiling and coverage artifacts
+*.profraw
+*.profdata
+perf.data*
+
+# Generated catalog site output
+/dist/
+
+# Node tooling (site search index, EVM harness toolchains)
+node_modules/
+
+# Local environment and secrets (RPC endpoints, deploy keys)
+.env
+.env.*
+!.env.example
+
+# OS-specific files
+.DS_Store
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
