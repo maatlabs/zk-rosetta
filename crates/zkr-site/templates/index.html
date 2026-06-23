@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}zk-rosetta &mdash; catalog{% endblock %}
+{% block head %}
+    <link rel="stylesheet" href="{{ root }}pagefind/pagefind-component-ui.css" />
+    <script type="module" src="{{ root }}pagefind/pagefind-component-ui.js"></script>
+{% endblock %}
+{% block content %}
+    <section class="intro">
+      <h1>zk-rosetta</h1>
+      <p class="lede">The same primitive, read across ecosystems. Every entry maps a zero-knowledge protocol proposal to its canonical specification and to audited implementations where they exist.</p>
+      <div class="search">
+        <pagefind-input></pagefind-input>
+        <pagefind-results></pagefind-results>
+      </div>
+    </section>
+
+    <section class="filters" aria-label="Filter the catalog">
+      <label>Ecosystem
+        <select data-field="ecosystem"><option value="">all</option>{% for value in ecosystems %}<option value="{{ value }}">{{ value }}</option>{% endfor %}</select>
+      </label>
+      <label>Layer
+        <select data-field="layer"><option value="">all</option>{% for value in layers %}<option value="{{ value }}">{{ value }}</option>{% endfor %}</select>
+      </label>
+      <label>Category
+        <select data-field="category"><option value="">all</option>{% for value in categories %}<option value="{{ value }}">{{ value }}</option>{% endfor %}</select>
+      </label>
+      <label>Status
+        <select data-field="status"><option value="">all</option>{% for value in statuses %}<option value="{{ value }}">{{ value }}</option>{% endfor %}</select>
+      </label>
+      <label>Primitive
+        <select data-field="primitive"><option value="">all</option>{% for value in primitives %}<option value="{{ value }}">{{ value }}</option>{% endfor %}</select>
+      </label>
+      <label class="text-filter">Find
+        <input type="search" placeholder="filter rows&hellip;" />
+      </label>
+      <button type="button" class="reset">Reset</button>
+    </section>
+
+    <table class="catalog">
+      <thead>
+        <tr>
+          <th data-sort>ID</th>
+          <th data-sort>Title</th>
+          <th data-sort>Ecosystem</th>
+          <th data-sort>Layer</th>
+          <th data-sort>Category</th>
+          <th data-sort>Status</th>
+          <th data-sort>Primitive</th>
+          <th data-sort>Enables</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in proposals %}
+        <tr data-ecosystem="{{ p.ecosystem }}" data-layer="{{ p.layer }}" data-category="{{ p.category }}" data-status="{{ p.status }}" data-primitive="{{ p.primitive or '' }}">
+          <td><a href="{{ root }}proposals/{{ p.slug }}.html">{{ p.id }}</a></td>
+          <td>{{ p.title }}</td>
+          <td><span class="badge eco eco-{{ p.ecosystem }}">{{ p.ecosystem }}</span></td>
+          <td>{{ p.layer }}</td>
+          <td>{{ p.category }}</td>
+          <td><span class="badge status status-{{ p.status }}">{{ p.status }}</span></td>
+          <td>{% if p.primitive %}{{ p.primitive }}{% else %}<span class="muted">&mdash;</span>{% endif %}</td>
+          <td>{{ p.enables }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="count"><span id="visible-count">{{ proposals | length }}</span> of {{ proposals | length }} proposals</p>
+
+    <script src="{{ root }}assets/filter.js"></script>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ p.id }} &mdash; zk-rosetta{% endblock %}
+
+{% macro related(heading, ids, root) %}
+  {% if ids %}
+  <div class="rel">
+    <dt>{{ heading }}</dt>
+    <dd>{% for rid in ids %}<a href="{{ root }}proposals/{{ rid | lower }}.html">{{ rid }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</dd>
+  </div>
+  {% endif %}
+{% endmacro %}
+
+{% block content %}
+    <article data-pagefind-body>
+      <nav class="crumbs"><a href="{{ root }}index.html">Catalog</a> <span>/</span> {{ p.id }}</nav>
+      <header class="proposal-header">
+        <h1>{{ p.id }}</h1>
+        <p class="subtitle">{{ p.title }}</p>
+        <p class="badges">
+          <span class="badge eco eco-{{ p.ecosystem }}" data-pagefind-filter="ecosystem">{{ p.ecosystem }}</span>
+          <span class="badge">{{ p.layer }}</span>
+          <span class="badge" data-pagefind-filter="category">{{ p.category }}</span>
+          <span class="badge status status-{{ p.status }}">{{ p.status }}</span>
+          {% if p.primitive %}<span class="badge primitive" data-pagefind-filter="primitive">{{ p.primitive }}</span>{% endif %}
+        </p>
+      </header>
+
+      <dl class="meta">
+        <div><dt>Native status</dt><dd>{{ p.native_status }}</dd></div>
+        <div><dt>Enables</dt><dd>{{ p.enables }}</dd></div>
+        <div><dt>Specification</dt><dd><a href="{{ p.spec }}">{{ p.spec }}</a></dd></div>
+      </dl>
+
+      <section class="notes">{{ p.notes_html | safe }}</section>
+
+      {% if p.implementations %}
+      <section>
+        <h2>Implementations</h2>
+        <ul class="impls">
+          {% for imp in p.implementations %}
+          <li>
+            <a class="impl-name" href="{{ imp.url }}">{{ imp.name }}</a>
+            <span class="lang">{{ imp.language }}</span>
+            {% if imp.audited %}
+            <span class="badge audited">audited</span>{% if imp.audit_ref %} <a class="audit-link" href="{{ imp.audit_ref }}">report</a>{% endif %}
+            {% else %}
+            <span class="badge unaudited">not independently audited</span>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% else %}
+      <section><h2>Implementations</h2><p class="gap">No audited implementation is catalogued for this proposal yet.</p></section>
+      {% endif %}
+
+      {% if p.relationships %}
+      <section>
+        <h2>Relationships</h2>
+        <dl class="relationships">
+          {{ related("Equivalent to", p.relationships.equivalent_to, root) }}
+          {{ related("Depends on", p.relationships.depends_on, root) }}
+          {{ related("Supersedes", p.relationships.supersedes, root) }}
+          {{ related("Superseded by", p.relationships.superseded_by, root) }}
+        </dl>
+      </section>
+      {% endif %}
+
+      {% if p.sources %}
+      <section>
+        <h2>Sources</h2>
+        <ul class="sources">{% for source in p.sources %}<li><a href="{{ source }}">{{ source }}</a></li>{% endfor %}</ul>
+      </section>
+      {% endif %}
+    </article>
+{% endblock %}

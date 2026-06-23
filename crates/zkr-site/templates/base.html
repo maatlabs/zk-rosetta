@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}zk-rosetta{% endblock %}</title>
+    <link rel="stylesheet" href="{{ root }}assets/style.css" />
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="{{ root }}index.html">zk&#8209;rosetta</a>
+      <nav>
+        <a href="{{ root }}index.html">Catalog</a>
+        <a href="{{ root }}rosetta.html">Rosetta view</a>
+        <a href="https://github.com/maatlabs/zk-rosetta">Source</a>
+      </nav>
+    </header>
+    <main>{% block content %}{% endblock %}</main>
+    <footer class="site-footer">
+      <p>A cross-ecosystem catalog of zero-knowledge protocol proposals, each mapped to its specification and to audited implementations where they exist. zk-rosetta authors no cryptography; it links to audited implementations and records where none exists.</p>
+    </footer>
+  </body>
+</html>

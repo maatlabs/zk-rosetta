@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/zkr-catalog", "crates/zkr-cli"]
+members = ["crates/zkr-catalog", "crates/zkr-cli", "crates/zkr-site"]
 
 [workspace.package]
 version = "0.1.0"
@@ -21,3 +21,7 @@ url = "2.5"
 clap = { version = "4", features = ["derive"] }
 ureq = "3"
 anyhow = "1"
+minijinja = "2"
+pulldown-cmark = { version = "0.13", default-features = false, features = [
+    "html",
+] }

@@ -9,6 +9,7 @@ zk-rosetta never authors cryptography. It catalogs proposals and links to audite
 - `data/<ecosystem>/<id>.toml`: one file per proposal; the source the tooling reads.
 - `crates/zkr-catalog`: the proposal data model, loader, and validator. The Rust type is the schema.
 - `crates/zkr-cli`: the `zkr` command-line tool.
+- `crates/zkr-site`: the static-site generator that renders the catalog and the Rosetta comparison view.
 
 ## Usage
 
@@ -23,6 +24,14 @@ Pass `--online` to additionally check that every specification and implementatio
 ```sh
 cargo run -p zkr-cli -- schema
 ```
+
+Generate the static catalog site into `dist/`:
+
+```sh
+cargo run -p zkr-site -- build
+```
+
+The generated pages carry full-text search markup; the search index is produced at deploy time by [Pagefind](https://pagefind.app/), a build-time step that leaves the published site fully static with no backend.
 
 ## Contributing
 
