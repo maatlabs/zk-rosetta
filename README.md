@@ -24,6 +24,12 @@ Pass `--online` to additionally check that every specification and implementatio
 cargo run -p zkr-cli -- schema
 ```
 
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for how to add or correct a catalog entry and open a pull request, and [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) for community expectations. To report a security issue, see [SECURITY.md](./SECURITY.md).
+
 ## License
 
-Licensed under either of the Apache License, Version 2.0 or the MIT license, at your option.
+Licensed under either of [Apache License, Version 2.0](./LICENSE-APACHE) or [MIT license](./LICENSE-MIT) at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this project by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
