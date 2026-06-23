@@ -1,0 +1,18 @@
+[package]
+name = "zkr-cli"
+description = "Command-line tools for validating and inspecting the zk-rosetta catalog."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[[bin]]
+name = "zkr"
+path = "src/main.rs"
+
+[dependencies]
+zkr-catalog.workspace = true
+clap.workspace = true
+anyhow.workspace = true
+ureq.workspace = true
