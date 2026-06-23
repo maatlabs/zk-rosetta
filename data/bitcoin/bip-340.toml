@@ -9,3 +9,9 @@ primitive = "secp256k1"
 enables = "ZK-composable signatures"
 spec = "https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki"
 notes = "Schnorr signatures for secp256k1; Schnorr is itself a sigma protocol (a proof of knowledge of a discrete logarithm) made non-interactive via Fiat-Shamir, and its linearity across key aggregation, adaptor signatures, and threshold schemes plus a clean security reduction make it especially tractable to compose with zero-knowledge constructions."
+
+[[implementations]]
+name = "libsecp256k1"
+language = "c"
+url = "https://github.com/bitcoin-core/secp256k1"
+audited = false

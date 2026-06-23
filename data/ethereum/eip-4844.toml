@@ -9,3 +9,10 @@ primitive = "KZG"
 enables = "ZK rollup settlement"
 spec = "https://eips.ethereum.org/EIPS/eip-4844"
 notes = "Introduces blob-carrying transactions and a point-evaluation precompile at address 0x0a that verifies a KZG proof asserting that a blob commitment evaluates to a given value at a given point; the single biggest practical enabler of economical ZK rollup settlement on Ethereum."
+
+[[implementations]]
+name = "c-kzg-4844"
+language = "c"
+url = "https://github.com/ethereum/c-kzg-4844"
+audited = true
+audit_ref = "https://github.com/ethereum/c-kzg-4844/blob/main/audits/2023_sigp.pdf"

@@ -9,3 +9,6 @@ primitive = "BN254"
 enables = "Groth16 partial verification"
 spec = "https://eips.ethereum.org/EIPS/eip-196"
 notes = "Precompiled contracts for point addition (ECADD) and scalar multiplication (ECMUL) on the alt_bn128 (BN254) curve, motivated by enabling zkSNARK verification within the block gas limit."
+
+[relationships]
+equivalent_to = ["SIMD-0129"]

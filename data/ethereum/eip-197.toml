@@ -12,3 +12,4 @@ notes = "Precompiled contract for the optimal ate pairing check on alt_bn128 (BN
 
 [relationships]
 depends_on = ["EIP-196"]
+equivalent_to = ["SIMD-0129"]

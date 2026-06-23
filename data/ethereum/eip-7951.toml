@@ -9,3 +9,13 @@ primitive = "secp256r1"
 enables = "HW-native account ZK"
 spec = "https://eips.ethereum.org/EIPS/eip-7951"
 notes = "Precompile for secp256r1 (NIST P-256) signature verification at address 0x100; it supersedes RIP-7212, fixing a point-at-infinity check and a modular-comparison bug, and lets hardware-enclave signers such as Apple Secure Enclave, Android Keystore, and WebAuthn or FIDO2 be verified on-chain cheaply."
+
+[[implementations]]
+name = "RustCrypto p256"
+language = "rust"
+url = "https://github.com/RustCrypto/elliptic-curves/tree/master/p256"
+audited = true
+audit_ref = "https://reports.zksecurity.xyz/reports/near-p256/"
+
+[relationships]
+equivalent_to = ["SIMD-0048", "SIMD-0075"]

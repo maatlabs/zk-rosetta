@@ -9,3 +9,6 @@ primitive = "BLS12-381"
 enables = "128-bit-secure ZK + Alpenglow"
 spec = "https://github.com/solana-foundation/solana-improvement-documents/blob/main/proposals/0388-bls12-381-syscalls.md"
 notes = "BLS12-381 syscalls enabling Groth16 verification on BLS12-381 and BLS proof-of-possession signature verification at a 128-bit security level; also required for Alpenglow consensus (SIMD-0326)."
+
+[relationships]
+equivalent_to = ["EIP-2537"]

@@ -77,12 +77,36 @@ fn unreachable_links(loaded: &[LoadedProposal]) -> Vec<String> {
         .flat_map(|entry| {
             let proposal = &entry.proposal;
             std::iter::once(proposal.spec.clone())
-                .chain(proposal.implementations.iter().map(|i| i.url.clone()))
-                .filter_map(|url| match ureq::get(url.as_str()).call() {
-                    Ok(_) => None,
+                .chain(proposal.sources.iter().cloned())
+                .chain(
+                    proposal
+                        .implementations
+                        .iter()
+                        .flat_map(|i| std::iter::once(i.url.clone()).chain(i.audit_ref.clone())),
+                )
+                .filter_map(|url| match reachable(&url) {
+                    Ok(()) => None,
                     Err(err) => Some(format!("`{}`: unreachable {url}: {err}", proposal.id)),
                 })
                 .collect::<Vec<_>>()
         })
         .collect()
+}
+
+/// Resolves a URL, retrying a few times so a single transient network failure
+/// does not flag an otherwise-reachable link.
+fn reachable(url: &str) -> Result<(), ureq::Error> {
+    const ATTEMPTS: usize = 3;
+    std::iter::repeat_with(|| ureq::get(url).call())
+        .take(ATTEMPTS)
+        .enumerate()
+        .find_map(|(attempt, result)| match result {
+            Ok(_) => Some(Ok(())),
+            Err(_) if attempt + 1 < ATTEMPTS => {
+                std::thread::sleep(std::time::Duration::from_millis(500));
+                None
+            }
+            Err(err) => Some(Err(err)),
+        })
+        .unwrap_or(Ok(()))
 }
