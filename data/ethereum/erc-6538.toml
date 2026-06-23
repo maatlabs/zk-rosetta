@@ -1,0 +1,13 @@
+id = "ERC-6538"
+title = "Stealth Meta-Address Registry"
+ecosystem = "ethereum"
+layer = "app"
+category = "privacy"
+status = "final"
+native_status = "Final"
+enables = "Companion to ERC-5564"
+spec = "https://ercs.ethereum.org/ERCS/erc-6538"
+notes = "A stealth meta-address registry that lets recipients publish their stealth meta-addresses on-chain; the announcement and registry layer that pairs with ERC-5564."
+
+[relationships]
+depends_on = ["ERC-5564"]

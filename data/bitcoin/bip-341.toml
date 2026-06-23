@@ -1,0 +1,14 @@
+id = "BIP-341"
+title = "Taproot: SegWit version 1 spending rules"
+ecosystem = "bitcoin"
+layer = "L1"
+category = "privacy"
+status = "final"
+native_status = "Deployed"
+primitive = "secp256k1"
+enables = "Hidden spending conditions"
+spec = "https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki"
+notes = "Taproot commits to a Merkle tree of spending conditions; a key-path spend reveals nothing about whether script paths exist, hiding the unexecuted branches, a form of computational hiding that shares the spirit of zero knowledge."
+
+[relationships]
+depends_on = ["BIP-340"]

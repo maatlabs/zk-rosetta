@@ -1,0 +1,13 @@
+id = "ERC-1923"
+title = "zk-SNARK Verifier Registry Standard"
+ecosystem = "ethereum"
+layer = "app"
+category = "interface"
+status = "stagnant"
+native_status = "Stagnant"
+enables = "Registry for vkeys"
+spec = "https://ercs.ethereum.org/ERCS/erc-1923"
+notes = "A companion to ERC-1922 defining a standard zk-SNARK verifier-registry interface through which verification activity and multiple verification keys and their verifiers can be tracked."
+
+[relationships]
+depends_on = ["ERC-1922"]

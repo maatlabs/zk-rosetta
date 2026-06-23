@@ -1,0 +1,14 @@
+id = "BIP-342"
+title = "Validation of Taproot Scripts"
+ecosystem = "bitcoin"
+layer = "L1"
+category = "primitive"
+status = "final"
+native_status = "Deployed"
+primitive = "secp256k1"
+enables = "Batch verify, scripting"
+spec = "https://github.com/bitcoin/bips/blob/master/bip-0342.mediawiki"
+notes = "Tapscript defines the script-validation rules for Taproot and introduces OP_CHECKSIGADD, enabling efficient multisignatures and batch verification of Schnorr signatures."
+
+[relationships]
+depends_on = ["BIP-341"]

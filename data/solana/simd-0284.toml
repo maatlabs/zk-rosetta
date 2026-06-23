@@ -1,0 +1,14 @@
+id = "SIMD-0284"
+title = "Alt-BN128 Little Endian compatibility"
+ecosystem = "solana"
+layer = "L1"
+category = "primitive"
+status = "idea"
+native_status = "Idea"
+primitive = "BN254"
+enables = "Rust ZK lib compat"
+spec = "https://github.com/solana-foundation/solana-improvement-documents/blob/main/proposals/0284-alt-bn128-little-endian.md"
+notes = "Extends the alt_bn128 syscalls with little-endian variants for compatibility with Rust ZK libraries such as arkworks, which encode field elements little-endian by default."
+
+[relationships]
+depends_on = ["SIMD-0129"]

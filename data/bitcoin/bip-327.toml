@@ -1,0 +1,14 @@
+id = "BIP-327"
+title = "MuSig2 for BIP340-compatible Multi-Signatures"
+ecosystem = "bitcoin"
+layer = "L1"
+category = "multi-sig"
+status = "final"
+native_status = "Deployed"
+primitive = "secp256k1"
+enables = "Schnorr-based aggregation"
+spec = "https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki"
+notes = "MuSig2 produces a single BIP-340 Schnorr signature from n signers; its security rests on the algebraic one-more discrete-logarithm assumption, a falsifiable hardness assumption shared with many ZK constructions."
+
+[relationships]
+depends_on = ["BIP-340"]

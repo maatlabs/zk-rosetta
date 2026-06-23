@@ -1,0 +1,14 @@
+id = "SIMD-0302"
+title = "BN254 G2 Arithmetic Syscalls"
+ecosystem = "solana"
+layer = "L1"
+category = "primitive"
+status = "review"
+native_status = "Review"
+primitive = "BN254"
+enables = "Advanced ZK verification"
+spec = "https://github.com/solana-foundation/solana-improvement-documents/blob/main/proposals/0302-bn254-g2-syscalls.md"
+notes = "Extends sol_alt_bn128_group_op with native G2 curve arithmetic (addition, subtraction, and scalar multiplication) on BN254, which otherwise must run in BPF at roughly ten to twenty times the cost; required for advanced ZK verification methods and batch proof verification."
+
+[relationships]
+depends_on = ["SIMD-0129"]

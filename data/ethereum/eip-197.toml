@@ -1,0 +1,14 @@
+id = "EIP-197"
+title = "Precompiled contracts for optimal ate pairing check on the elliptic curve alt_bn128"
+ecosystem = "ethereum"
+layer = "L1"
+category = "primitive"
+status = "final"
+native_status = "Final"
+primitive = "BN254"
+enables = "Groth16 full verification"
+spec = "https://eips.ethereum.org/EIPS/eip-197"
+notes = "Precompiled contract for the optimal ate pairing check on alt_bn128 (BN254); combined with EIP-196 it makes Groth16 verification on Ethereum possible."
+
+[relationships]
+depends_on = ["EIP-196"]

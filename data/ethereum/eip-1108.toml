@@ -1,0 +1,14 @@
+id = "EIP-1108"
+title = "Reduce alt_bn128 precompile gas costs"
+ecosystem = "ethereum"
+layer = "L1"
+category = "primitive"
+status = "final"
+native_status = "Final"
+primitive = "BN254"
+enables = "Economical ZK on L1"
+spec = "https://eips.ethereum.org/EIPS/eip-1108"
+notes = "Sharply reduces the gas costs of the alt_bn128 (BN254) precompiles introduced by EIP-196 and EIP-197, making zkSNARK verifiers and confidential-transaction schemes economically viable on mainnet."
+
+[relationships]
+depends_on = ["EIP-196", "EIP-197"]
