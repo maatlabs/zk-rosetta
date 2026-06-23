@@ -1,0 +1,16 @@
+[package]
+name = "zkr-harness"
+description = "Shared test-vector format and loader that drive audited zero-knowledge implementations across ecosystems."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+zkr-catalog.workspace = true
+
+serde.workspace = true
+toml.workspace = true
+thiserror.workspace = true
+hex.workspace = true
