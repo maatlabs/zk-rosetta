@@ -219,12 +219,15 @@ equivalent_to = ["EIP-197"]
 "#;
 
     fn fixture() -> (PathBuf, PathBuf) {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        // A per-call counter, not a timestamp: tests run in parallel and share a
+        // process, and two `SystemTime::now()` reads can collide under a coarse
+        // clock, giving two tests the same directory and racing their cleanups.
+        static SEQ: AtomicU64 = AtomicU64::new(0);
         let unique = format!(
-            "zkr-site-test-{}-{:?}",
+            "zkr-site-test-{}-{}",
             std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+            SEQ.fetch_add(1, Ordering::Relaxed)
         );
         let base = std::env::temp_dir().join(unique);
         let data = base.join("data");
