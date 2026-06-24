@@ -12,6 +12,21 @@ perf.data*
 # Node tooling (site search index, EVM harness toolchains)
 node_modules/
 
+# Test-vector generation intermediates (run in a scratch directory; only the
+# small final artifacts are committed). The audited verifier source is
+# regenerated on demand rather than vendored.
+vectors/**/*.ptau
+vectors/**/*.zkey
+vectors/**/*.r1cs
+vectors/**/*.sym
+vectors/**/*.wtns
+vectors/**/*_js/
+vectors/**/input.json
+vectors/**/Verifier.sol
+vectors/**/build/
+vectors/**/go.mod
+vectors/**/go.sum
+
 # Local environment and secrets (RPC endpoints, deploy keys)
 .env
 .env.*

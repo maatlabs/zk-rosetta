@@ -1,0 +1,13 @@
+# cargo-audit configuration.
+#
+# RUSTSEC-2025-0055 (tracing-subscriber 0.2.25): an optional, transitive
+# dependency of ark-relations 0.5.1 that is not reachable from any crate in this
+# workspace. It appears only in Cargo.lock, never in the resolved build graph, so
+# it is never compiled or shipped. It cannot be upgraded from here---it belongs
+# to an external, audited dependency tree this project consumes rather than
+# authors---and the advisory's impact (ANSI-escape poisoning when logging
+# untrusted input through tracing-subscriber) does not apply: this project does
+# no such logging. The entry is no longer needed once the upstream tree stops
+# locking the affected version.
+[advisories]
+ignore = ["RUSTSEC-2025-0055"]

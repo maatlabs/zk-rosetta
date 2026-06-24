@@ -1,0 +1,17 @@
+[package]
+name = "zkr-svm-program"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "On-chain SVM program that drives the audited groth16-solana verifier for the zk-rosetta parity harness."
+publish = false
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+solana-program = "2"
+groth16-solana = "0.2"
+
+[profile.release]
+overflow-checks = true

@@ -75,7 +75,7 @@ fn unreachable_links(loaded: &[LoadedProposal]) -> Vec<String> {
     loaded
         .iter()
         .flat_map(|entry| {
-            let proposal = &entry.proposal;
+            let proposal = &entry.value;
             std::iter::once(proposal.spec.clone())
                 .chain(proposal.sources.iter().cloned())
                 .chain(

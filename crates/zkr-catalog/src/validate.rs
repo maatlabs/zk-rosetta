@@ -92,7 +92,7 @@ pub enum ValidationError {
 pub fn validate(loaded: &[LoadedProposal]) -> Vec<ValidationError> {
     let index = loaded
         .iter()
-        .map(|entry| (entry.proposal.id.as_str(), &entry.proposal))
+        .map(|entry| (entry.value.id.as_str(), &entry.value))
         .collect::<HashMap<&str, &Proposal>>();
 
     duplicate_ids(loaded)
@@ -101,17 +101,17 @@ pub fn validate(loaded: &[LoadedProposal]) -> Vec<ValidationError> {
         .chain(
             loaded
                 .iter()
-                .flat_map(|entry| url_wellformedness(&entry.proposal)),
+                .flat_map(|entry| url_wellformedness(&entry.value)),
         )
         .chain(
             loaded
                 .iter()
-                .flat_map(|entry| referential_integrity(&entry.proposal, &index)),
+                .flat_map(|entry| referential_integrity(&entry.value, &index)),
         )
         .chain(
             loaded
                 .iter()
-                .flat_map(|entry| edge_symmetry(&entry.proposal, &index)),
+                .flat_map(|entry| edge_symmetry(&entry.value, &index)),
         )
         .collect()
 }
@@ -120,7 +120,7 @@ fn duplicate_ids(loaded: &[LoadedProposal]) -> Vec<ValidationError> {
     let mut by_id: HashMap<&str, Vec<String>> = HashMap::new();
     for entry in loaded {
         by_id
-            .entry(entry.proposal.id.as_str())
+            .entry(entry.value.id.as_str())
             .or_default()
             .push(entry.path.display().to_string());
     }
@@ -138,7 +138,7 @@ fn duplicate_ids(loaded: &[LoadedProposal]) -> Vec<ValidationError> {
 }
 
 fn path_consistency(entry: &LoadedProposal) -> Vec<ValidationError> {
-    let proposal = &entry.proposal;
+    let proposal = &entry.value;
     let path = entry.path.display().to_string();
     let mut errors = Vec::new();
 
@@ -312,7 +312,7 @@ mod tests {
         let path = format!("data/ethereum/{}.toml", proposal.id.to_ascii_lowercase());
         LoadedProposal {
             path: path.into(),
-            proposal,
+            value: proposal,
         }
     }
 
@@ -399,7 +399,7 @@ mod tests {
     fn detects_filename_mismatch() {
         let wrong = LoadedProposal {
             path: "data/ethereum/wrong.toml".into(),
-            proposal: proposal("EIP-1"),
+            value: proposal("EIP-1"),
         };
         let errors = validate(&[wrong]);
         assert!(

@@ -1,39 +1,14 @@
 //! Loading proposals from disk.
 
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+
+pub use zkr_core::LoadError;
+use zkr_core::{Loaded, load_file, read_sorted};
 
 use crate::model::Proposal;
 
 /// A proposal together with the path it was loaded from.
-#[derive(Debug, Clone)]
-pub struct LoadedProposal {
-    /// Path of the source file.
-    pub path: PathBuf,
-    /// The parsed proposal.
-    pub proposal: Proposal,
-}
-
-/// An error encountered while loading the catalog from disk.
-#[derive(Debug, thiserror::Error)]
-pub enum LoadError {
-    /// A directory or file could not be read.
-    #[error("failed to read {path}: {source}")]
-    Io {
-        /// Path that could not be read.
-        path: PathBuf,
-        /// Underlying I/O error.
-        source: std::io::Error,
-    },
-    /// A file was not valid proposal TOML.
-    #[error("failed to parse {path}: {source}")]
-    Parse {
-        /// Path that failed to parse.
-        path: PathBuf,
-        /// Underlying deserialization error.
-        source: toml::de::Error,
-    },
-}
+pub type LoadedProposal = Loaded<Proposal>;
 
 /// Parses a single proposal from its TOML representation.
 pub fn parse_proposal(toml_str: &str) -> Result<Proposal, toml::de::Error> {
@@ -51,42 +26,11 @@ pub fn load_dir(root: &Path) -> Result<Vec<LoadedProposal>, LoadError> {
             Ok(files) => files
                 .into_iter()
                 .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("toml"))
-                .map(load_file)
+                .map(|p| load_file::<Proposal>(&p))
                 .collect(),
             Err(err) => vec![Err(err)],
         })
         .collect()
-}
-
-fn read_sorted(dir: &Path) -> Result<Vec<PathBuf>, LoadError> {
-    let mut entries = fs::read_dir(dir)
-        .map_err(|source| LoadError::Io {
-            path: dir.to_path_buf(),
-            source,
-        })?
-        .map(|entry| {
-            entry
-                .map(|entry| entry.path())
-                .map_err(|source| LoadError::Io {
-                    path: dir.to_path_buf(),
-                    source,
-                })
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    entries.sort();
-    Ok(entries)
-}
-
-fn load_file(path: PathBuf) -> Result<LoadedProposal, LoadError> {
-    let text = fs::read_to_string(&path).map_err(|source| LoadError::Io {
-        path: path.clone(),
-        source,
-    })?;
-    let proposal = parse_proposal(&text).map_err(|source| LoadError::Parse {
-        path: path.clone(),
-        source,
-    })?;
-    Ok(LoadedProposal { path, proposal })
 }
 
 #[cfg(test)]

@@ -15,6 +15,7 @@ use anyhow::Context;
 use minijinja::{Environment, context};
 use serde::Serialize;
 use zkr_catalog::{Proposal, load_dir};
+use zkr_core::label;
 
 const BASE: &str = include_str!("../templates/base.html");
 const INDEX: &str = include_str!("../templates/index.html");
@@ -52,9 +53,9 @@ pub fn build(data: &Path, out: &Path) -> anyhow::Result<usize> {
         .with_context(|| format!("loading catalog from {}", data.display()))?
         .into_iter()
         .map(|entry| ProposalView {
-            slug: entry.proposal.id.to_ascii_lowercase(),
-            notes_html: markdown(&entry.proposal.notes),
-            proposal: entry.proposal,
+            slug: entry.value.id.to_ascii_lowercase(),
+            notes_html: markdown(&entry.value.notes),
+            proposal: entry.value,
         })
         .collect::<Vec<_>>();
 
@@ -116,15 +117,6 @@ fn markdown(src: &str) -> String {
     let mut html = String::new();
     pulldown_cmark::html::push_html(&mut html, pulldown_cmark::Parser::new(src));
     html
-}
-
-/// The serde wire form of an enum value, reused as its display label so the
-/// site never duplicates the catalog's canonical naming.
-fn label<T: Serialize>(value: T) -> String {
-    serde_json::to_value(value)
-        .ok()
-        .and_then(|value| value.as_str().map(str::to_string))
-        .unwrap_or_default()
 }
 
 /// The sorted, de-duplicated labels a projection yields across all proposals,

@@ -1,6 +1,6 @@
 [package]
-name = "zkr-catalog"
-description = "Data model, loader, and validator for the zk-rosetta cross-ecosystem proposal catalog."
+name = "zkr-core"
+description = "Shared infrastructure for zk-rosetta: the primitive taxonomy, the TOML loading layer, and the canonical display-label helper."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,11 +8,8 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-zkr-core.workspace = true
-
 serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true
 schemars.workspace = true
 thiserror.workspace = true
-url.workspace = true

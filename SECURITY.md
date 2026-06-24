@@ -8,7 +8,8 @@ The security surface this project owns is the glue around that data:
 
 - **Catalog ingestion.** Proposal files are untrusted contributor input. They are parsed under strict deserialization (`deny_unknown_fields`) and checked against the catalog invariants before they are trusted. The parser and validator must handle malformed or adversarial TOML without panicking.
 - **Link handling.** Specification, source, and implementation URLs are validated as well-formed `http`/`https` before use, and optional online checking performs outbound requests only when explicitly requested.
-- **Harness orchestration.** As the parity harness grows, the boundary between this project's orchestration code and the external implementations it executes is a trust boundary. The harness owns only argument marshalling and result comparison; it must not weaken or reimplement any guarantee provided by the audited code it calls.
+- **Harness orchestration.** The parity harness sits at a trust boundary between this project's orchestration code and the external implementations it executes. The harness owns only argument marshalling and result comparison; it must not weaken or reimplement any guarantee provided by the audited code it calls. It drives those implementations in-process---an audited EVM verifier under `revm` and an audited SVM verifier under `litesvm`---over committed test vectors.
+- **Committed compiled artifacts.** Some audited implementations are executed from compiled artifacts committed to this repository (the EVM verifier bytecode and the on-chain SVM program). These are not opaque blobs: each is reproducible from committed source through the recipe and `PROVENANCE.md` recorded alongside it, so what the harness runs can be independently re-derived and audited rather than trusted on faith.
 
 The glue code maintains the same discipline throughout: checked arithmetic, no `unwrap` in library paths, and no `unsafe`.
 

@@ -13,9 +13,9 @@ path = "src/main.rs"
 
 [dependencies]
 zkr-catalog.workspace = true
+zkr-core.workspace = true
 clap.workspace = true
 anyhow.workspace = true
 serde.workspace = true
-serde_json.workspace = true
 minijinja.workspace = true
 pulldown-cmark.workspace = true
