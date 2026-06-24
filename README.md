@@ -1,4 +1,19 @@
-# zk-rosetta
+<div align="center">
+  <h1>ZK Rosetta</h1>
+  <p><strong>A cross-ecosystem catalog of zero-knowledge protocol proposals---with executable proof that one statement verifies identically across chains.</strong></p>
+</div>
+
+<div align="center">
+
+[![CI](https://github.com/maatlabs/zk-rosetta/actions/workflows/ci.yml/badge.svg)](https://github.com/maatlabs/zk-rosetta/actions/workflows/ci.yml)
+[![Security Audit](https://github.com/maatlabs/zk-rosetta/actions/workflows/security.yml/badge.svg)](https://github.com/maatlabs/zk-rosetta/actions/workflows/security.yml)
+[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
+[![Releases](https://img.shields.io/github/v/release/maatlabs/zk-rosetta)](https://github.com/maatlabs/zk-rosetta/releases)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-ff69b4.svg?style=flat-square)](https://github.com/maatlabs/zk-rosetta/blob/main/CONTRIBUTING.md)
+
+<strong><a href="https://maatlabs.github.io/zk-rosetta/">Browse the live catalog &rarr;</a></strong>
+
+</div>
 
 zk-rosetta is a cross-ecosystem catalog of zero-knowledge-related protocol proposals. Each entry maps a proposal to its specification, a normalized status, the cryptographic primitive it exposes, and its relationships to proposals in other ecosystems, so that one primitive can be read across the conventions of different chains.
 
@@ -6,14 +21,18 @@ zk-rosetta never authors cryptography. It catalogs proposals and links to audite
 
 ## Repository layout
 
-- `data/<ecosystem>/<id>.toml`: one file per proposal; the source the tooling reads.
-- `crates/zkr-core`: shared infrastructure used across the other crates---the cryptographic-primitive taxonomy, the TOML loading layer, and the canonical display-label helper.
-- `crates/zkr-catalog`: the proposal data model, loader, and validator. The Rust type is the schema.
-- `crates/zkr-cli`: the `zkr` command-line tool.
-- `crates/zkr-site`: the static-site generator that renders the catalog and the Rosetta comparison view.
-- `crates/zkr-harness`: the cross-ecosystem parity harness---the shared test-vector format and the adapters that drive audited verifiers on each ecosystem.
-- `vectors/<primitive>-<proof-system>-<statement>`: the committed, ecosystem-neutral test vectors the harness drives, each with its provenance.
-- `programs/zkr-svm-program`: the on-chain (SVM) glue the harness drives---a small program that forwards a marshalled vector to an audited on-chain verifier. It targets the SBF runtime and is built separately with `cargo build-sbf` (kept out of the host workspace); the compiled program is committed so the harness can run it in `litesvm` without a Solana toolchain.
+```text
+zk-rosetta/
+├── data/                  # catalog source: one TOML file per proposal (data/<ecosystem>/<id>.toml)
+├── crates/                # the Cargo workspace
+│   ├── zkr-core           # shared infrastructure: primitive taxonomy, TOML loader, label helper
+│   ├── zkr-catalog        # proposal data model, loader, validator (the Rust type is the schema)
+│   ├── zkr-cli            # the zkr command-line tool (validate, schema)
+│   ├── zkr-site           # static-site generator: catalog index + Rosetta comparison view
+│   └── zkr-harness        # parity harness: shared vector format + audited-verifier adapters
+├── vectors/               # committed, ecosystem-neutral test vectors (each with provenance)
+└── programs/              # on-chain SVM glue, built separately for the SBF runtime
+```
 
 ## Usage
 
