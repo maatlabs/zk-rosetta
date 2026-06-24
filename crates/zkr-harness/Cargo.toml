@@ -25,10 +25,11 @@ solana-transaction = { workspace = true, optional = true }
 solana-transaction-error = { workspace = true, optional = true }
 ark-bn254 = { workspace = true, optional = true }
 ark-ff = { workspace = true, optional = true }
+revm = { workspace = true, optional = true }
 
 [features]
-# The SVM parity adapter and its heavy Solana/arkworks dependencies are opt-in,
-# so the catalog-facing build of this crate stays lean.
+# Each parity adapter and its heavy ecosystem dependencies are opt-in, so the
+# catalog-facing build of this crate stays lean.
 svm = [
     "dep:litesvm",
     "dep:solana-address",
@@ -41,3 +42,4 @@ svm = [
     "dep:ark-bn254",
     "dep:ark-ff",
 ]
+evm = ["dep:revm"]

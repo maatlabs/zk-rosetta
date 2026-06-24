@@ -9,6 +9,7 @@ One directory per vector, named `<primitive>-<proof-system>-<statement>`:
 - **`vector.toml`** --- the vector in the neutral encoding below; this is the file loaded by `zkr-harness`.
 - **`PROVENANCE.md`** --- how the vector was produced, the exact tool versions, and the audited verifiers that check it.
 - supporting files used to produce the vector (the circuit, the raw prover output, and the generation script), kept for transparency and independent re-verification.
+- **`<ecosystem>/`** --- an ecosystem-specific *adapter fixture* derived from this vector, present only when the fixture is bound to this vector's verifying key. For example, `evm/` holds the deployed bytecode of the audited Groth16 verifier that bakes this vk in, plus the recipe that reproduces it. The vector itself stays ecosystem-neutral; only these derived fixtures are ecosystem-keyed. A fixture that is vk-agnostic and reusable across vectors is *not* placed here: the SVM side runs through the generic on-chain program in `programs/`, which takes the verifying key at runtime, so it lives once at the repository root rather than under each vector.
 
 ## `vector.toml` format
 

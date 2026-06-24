@@ -10,6 +10,8 @@ mod load;
 mod model;
 mod validate;
 
+#[cfg(feature = "evm")]
+pub mod evm;
 #[cfg(feature = "svm")]
 pub mod svm;
 

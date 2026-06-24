@@ -49,3 +49,8 @@ solana-transaction = "3.1.0"
 solana-transaction-error = "3.1.0"
 ark-bn254 = "0.6"
 ark-ff = "0.6"
+
+# EVM parity adapter: run an audited Groth16 BN254 verifier (a committed,
+# compiled fixture) in the revm in-process EVM, exercising the real EIP-196 and
+# EIP-197 alt_bn128 precompiles.
+revm = "33"
