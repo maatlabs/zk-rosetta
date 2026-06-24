@@ -10,6 +10,9 @@ mod load;
 mod model;
 mod validate;
 
+#[cfg(feature = "svm")]
+pub mod svm;
+
 pub use load::{LoadError, LoadedVector, load_dir, load_file, parse_vector};
 pub use model::{Element, Expected, G1, G2, Primitive, Proof, ProofSystem, Vector, VerifyingKey};
 pub use validate::{VectorError, validate};

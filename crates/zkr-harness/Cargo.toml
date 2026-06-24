@@ -14,3 +14,30 @@ serde.workspace = true
 toml.workspace = true
 thiserror.workspace = true
 hex.workspace = true
+
+litesvm = { workspace = true, optional = true }
+solana-address = { workspace = true, optional = true }
+solana-instruction = { workspace = true, optional = true }
+solana-instruction-error = { workspace = true, optional = true }
+solana-keypair = { workspace = true, optional = true }
+solana-signer = { workspace = true, optional = true }
+solana-transaction = { workspace = true, optional = true }
+solana-transaction-error = { workspace = true, optional = true }
+ark-bn254 = { workspace = true, optional = true }
+ark-ff = { workspace = true, optional = true }
+
+[features]
+# The SVM parity adapter and its heavy Solana/arkworks dependencies are opt-in,
+# so the catalog-facing build of this crate stays lean.
+svm = [
+    "dep:litesvm",
+    "dep:solana-address",
+    "dep:solana-instruction",
+    "dep:solana-instruction-error",
+    "dep:solana-keypair",
+    "dep:solana-signer",
+    "dep:solana-transaction",
+    "dep:solana-transaction-error",
+    "dep:ark-bn254",
+    "dep:ark-ff",
+]
