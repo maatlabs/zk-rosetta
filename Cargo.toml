@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/zkr-core",
     "crates/zkr-catalog",
     "crates/zkr-cli",
     "crates/zkr-site",
@@ -11,14 +12,15 @@ members = [
 exclude = ["programs/zkr-svm-program"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/maatlabs/zk-rosetta"
 homepage = "https://github.com/maatlabs/zk-rosetta"
 
 [workspace.dependencies]
-zkr-catalog = { path = "crates/zkr-catalog", version = "0.1.0" }
+zkr-core = { path = "crates/zkr-core", version = "0.2.0" }
+zkr-catalog = { path = "crates/zkr-catalog", version = "0.2.0" }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

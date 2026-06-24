@@ -2,7 +2,7 @@
 
 use serde::de::{self, Deserializer};
 use serde::{Deserialize, Serialize, Serializer};
-pub use zkr_catalog::Primitive;
+pub use zkr_core::Primitive;
 
 /// One ecosystem-neutral test vector: a statement, its verifying key, and a proof.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

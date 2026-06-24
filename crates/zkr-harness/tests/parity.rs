@@ -31,7 +31,7 @@ fn parity_verdict(vector: &Vector) -> bool {
 fn evm_and_svm_agree_to_accept_the_committed_proof() {
     let loaded = load_file(Path::new(VECTOR_PATH)).expect("committed vector should load");
     assert!(
-        parity_verdict(&loaded.vector),
+        parity_verdict(&loaded.value),
         "both ecosystems must accept the committed proof"
     );
 }

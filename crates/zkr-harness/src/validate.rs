@@ -57,26 +57,27 @@ fn ic_length(vector: &Vector) -> Option<VectorError> {
 }
 
 fn element_widths(vector: &Vector) -> Vec<VectorError> {
-    let Some((width, primitive)) = element_spec(vector.primitive) else {
+    let Some(width) = element_width(vector.primitive) else {
         return Vec::new();
     };
+    let primitive = zkr_core::label(vector.primitive);
     labeled_elements(vector)
         .into_iter()
         .filter(|(_, element)| element.as_bytes().len() != width)
         .map(|(location, element)| VectorError::ElementWidth {
             location,
-            primitive: primitive.to_string(),
+            primitive: primitive.clone(),
             expected: width,
             found: element.as_bytes().len(),
         })
         .collect()
 }
 
-/// The required field-element byte width and display name for primitives whose
-/// encoding is known. Primitives without a known width are not width-checked.
-fn element_spec(primitive: Primitive) -> Option<(usize, &'static str)> {
+/// The required field-element byte width for primitives whose encoding is known.
+/// Primitives without a known width are not width-checked.
+fn element_width(primitive: Primitive) -> Option<usize> {
     match primitive {
-        Primitive::Bn254 => Some((32, "BN254")),
+        Primitive::Bn254 => Some(32),
         _ => None,
     }
 }

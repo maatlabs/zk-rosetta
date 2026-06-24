@@ -6165,7 +6165,7 @@ dependencies = [
 
 [[package]]
 name = "zkr-catalog"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "schemars 1.2.1",
  "serde",
@@ -6173,11 +6173,12 @@ dependencies = [
  "thiserror 2.0.18",
  "toml",
  "url",
+ "zkr-core",
 ]
 
 [[package]]
 name = "zkr-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -6186,8 +6187,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "zkr-core"
+version = "0.2.0"
+dependencies = [
+ "schemars 1.2.1",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "toml",
+]
+
+[[package]]
 name = "zkr-harness"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "ark-bn254 0.6.0",
  "ark-ff 0.6.0",
@@ -6204,20 +6216,20 @@ dependencies = [
  "solana-transaction-error",
  "thiserror 2.0.18",
  "toml",
- "zkr-catalog",
+ "zkr-core",
 ]
 
 [[package]]
 name = "zkr-site"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
  "minijinja",
  "pulldown-cmark",
  "serde",
- "serde_json",
  "zkr-catalog",
+ "zkr-core",
 ]
 
 [[package]]

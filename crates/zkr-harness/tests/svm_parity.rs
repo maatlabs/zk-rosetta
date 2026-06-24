@@ -17,7 +17,7 @@ const VECTOR_PATH: &str = concat!(
 fn svm_accepts_the_committed_multiplier_proof() {
     let loaded = load_file(Path::new(VECTOR_PATH)).expect("committed vector should load");
     assert!(
-        svm::verify(&loaded.vector).expect("svm adapter should run"),
+        svm::verify(&loaded.value).expect("svm adapter should run"),
         "audited groth16-solana verifier must accept the committed proof"
     );
 }

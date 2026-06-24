@@ -17,7 +17,7 @@ const VECTOR_PATH: &str = concat!(
 fn evm_accepts_the_committed_multiplier_proof() {
     let loaded = load_file(Path::new(VECTOR_PATH)).expect("committed vector should load");
     assert!(
-        evm::verify(&loaded.vector).expect("evm adapter should run"),
+        evm::verify(&loaded.value).expect("evm adapter should run"),
         "audited Groth16 verifier must accept the committed proof"
     );
 }

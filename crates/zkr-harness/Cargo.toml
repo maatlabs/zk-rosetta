@@ -8,7 +8,7 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-zkr-catalog.workspace = true
+zkr-core.workspace = true
 
 serde.workspace = true
 toml.workspace = true

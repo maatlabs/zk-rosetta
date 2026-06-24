@@ -1,39 +1,14 @@
 //! Loading test vectors from disk.
 
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+
+pub use zkr_core::LoadError;
+use zkr_core::{Loaded, read_sorted};
 
 use crate::model::Vector;
 
 /// A vector together with the path it was loaded from.
-#[derive(Debug, Clone)]
-pub struct LoadedVector {
-    /// Path of the source file.
-    pub path: PathBuf,
-    /// The parsed vector.
-    pub vector: Vector,
-}
-
-/// An error encountered while loading a vector from disk.
-#[derive(Debug, thiserror::Error)]
-pub enum LoadError {
-    /// A directory or file could not be read.
-    #[error("failed to read {path}: {source}")]
-    Io {
-        /// Path that could not be read.
-        path: PathBuf,
-        /// Underlying I/O error.
-        source: std::io::Error,
-    },
-    /// A file was not valid vector TOML.
-    #[error("failed to parse {path}: {source}")]
-    Parse {
-        /// Path that failed to parse.
-        path: PathBuf,
-        /// Underlying deserialization error.
-        source: toml::de::Error,
-    },
-}
+pub type LoadedVector = Loaded<Vector>;
 
 /// Parses a single vector from its TOML representation.
 pub fn parse_vector(toml_str: &str) -> Result<Vector, toml::de::Error> {
@@ -42,18 +17,7 @@ pub fn parse_vector(toml_str: &str) -> Result<Vector, toml::de::Error> {
 
 /// Loads a single `vector.toml`.
 pub fn load_file(path: &Path) -> Result<LoadedVector, LoadError> {
-    let text = fs::read_to_string(path).map_err(|source| LoadError::Io {
-        path: path.to_path_buf(),
-        source,
-    })?;
-    let vector = parse_vector(&text).map_err(|source| LoadError::Parse {
-        path: path.to_path_buf(),
-        source,
-    })?;
-    Ok(LoadedVector {
-        path: path.to_path_buf(),
-        vector,
-    })
+    zkr_core::load_file(path)
 }
 
 /// Loads every `<root>/<name>/vector.toml`.
@@ -68,25 +32,6 @@ pub fn load_dir(root: &Path) -> Result<Vec<LoadedVector>, LoadError> {
         .filter(|candidate| candidate.is_file())
         .map(|candidate| load_file(&candidate))
         .collect()
-}
-
-fn read_sorted(dir: &Path) -> Result<Vec<PathBuf>, LoadError> {
-    let mut entries = fs::read_dir(dir)
-        .map_err(|source| LoadError::Io {
-            path: dir.to_path_buf(),
-            source,
-        })?
-        .map(|entry| {
-            entry
-                .map(|entry| entry.path())
-                .map_err(|source| LoadError::Io {
-                    path: dir.to_path_buf(),
-                    source,
-                })
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    entries.sort();
-    Ok(entries)
 }
 
 #[cfg(test)]

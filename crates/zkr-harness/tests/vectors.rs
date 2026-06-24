@@ -17,7 +17,7 @@ fn every_committed_vector_is_wellformed() {
         "expected at least one committed vector"
     );
     for loaded in &vectors {
-        let errors = validate(&loaded.vector);
+        let errors = validate(&loaded.value);
         assert!(
             errors.is_empty(),
             "{} is malformed: {errors:?}",
@@ -37,7 +37,7 @@ fn bn254_groth16_multiplier_proves_three_times_eleven() {
                 .contains("bn254-groth16-multiplier")
         })
         .expect("the bn254-groth16-multiplier vector should be present");
-    let vector = loaded.vector;
+    let vector = loaded.value;
 
     assert_eq!(vector.proof_system, ProofSystem::Groth16);
     assert_eq!(vector.primitive, Primitive::Bn254);
