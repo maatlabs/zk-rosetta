@@ -6165,7 +6165,7 @@ dependencies = [
 
 [[package]]
 name = "zkr-catalog"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "schemars 1.2.1",
  "serde",
@@ -6178,7 +6178,7 @@ dependencies = [
 
 [[package]]
 name = "zkr-cli"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -6189,7 +6189,7 @@ dependencies = [
 
 [[package]]
 name = "zkr-core"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "schemars 1.2.1",
  "serde",
@@ -6200,7 +6200,7 @@ dependencies = [
 
 [[package]]
 name = "zkr-harness"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ark-bn254 0.6.0",
  "ark-ff 0.6.0",
@@ -6222,7 +6222,7 @@ dependencies = [
 
 [[package]]
 name = "zkr-site"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "clap",
