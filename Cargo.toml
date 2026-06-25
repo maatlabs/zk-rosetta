@@ -31,6 +31,7 @@ url = "2.5"
 hex = "0.4"
 clap = { version = "4", features = ["derive"] }
 ureq = "3"
+rayon = "1"
 anyhow = "1"
 minijinja = "2"
 pulldown-cmark = { version = "0.13", default-features = false, features = [

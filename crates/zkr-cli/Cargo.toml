@@ -17,4 +17,5 @@ zkr-catalog.workspace = true
 clap.workspace = true
 anyhow.workspace = true
 ureq.workspace = true
+rayon.workspace = true
 serde_json.workspace = true
