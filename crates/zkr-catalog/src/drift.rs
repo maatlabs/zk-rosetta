@@ -149,6 +149,36 @@ impl Source for SolanaSimds {
     }
 }
 
+/// Zcash ZIPs, an RST document per proposal in `zcash/zips`.
+struct ZcashZips;
+
+impl Source for ZcashZips {
+    fn ecosystem(&self) -> Ecosystem {
+        Ecosystem::Zcash
+    }
+
+    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+        let slug = proposal.id.to_ascii_lowercase();
+        slug.starts_with("zip-")
+            .then(|| format!("https://raw.githubusercontent.com/zcash/zips/main/zips/{slug}.rst"))
+    }
+
+    fn canonical_spec(&self, proposal: &Proposal) -> Option<String> {
+        let slug = proposal.id.to_ascii_lowercase();
+        slug.starts_with("zip-")
+            .then(|| format!("https://zips.z.cash/{slug}"))
+    }
+
+    fn parse(&self, body: &str) -> Result<Upstream, ParseError> {
+        // The ZIP header is an indented preamble inside an RST literal block,
+        // so the BIP-style first-`Status:` reader applies.
+        let native = preamble_value(body, "Status").ok_or(ParseError::NoStatusField)?;
+        let status =
+            normalize_zip(&native).ok_or_else(|| ParseError::UnknownStatus(native.clone()))?;
+        Ok(Upstream { native, status })
+    }
+}
+
 /// A single freshness divergence between the catalog and an upstream source.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
@@ -296,6 +326,7 @@ pub fn sources() -> Vec<Box<dyn Source>> {
         Box::new(EthereumEips),
         Box::new(BitcoinBips),
         Box::new(SolanaSimds),
+        Box::new(ZcashZips),
     ]
 }
 
@@ -387,6 +418,22 @@ fn normalize_simd(native: &str) -> Option<Status> {
     })
 }
 
+/// Maps a ZIP native status onto the normalized scale.
+fn normalize_zip(native: &str) -> Option<Status> {
+    Some(match native.to_ascii_lowercase().as_str() {
+        "reserved" => Status::Idea,
+        "draft" => Status::Draft,
+        "proposed" => Status::Accepted,
+        "implemented" => Status::Implemented,
+        // `Active` (process/informational ZIPs) and `Final` (a Consensus or
+        // Standards ZIP activated on the network) are both live.
+        "active" | "final" => Status::Final,
+        "rejected" | "withdrawn" => Status::Withdrawn,
+        "obsolete" => Status::Superseded,
+        _ => return None,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -407,6 +454,10 @@ mod tests {
     const SIMD_0129: &str = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/fixtures/drift/simd-0129.md"
+    ));
+    const ZIP_0224: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/drift/zip-0224.rst"
     ));
 
     fn proposal(id: &str, ecosystem: &str, status: &str, spec: &str) -> Proposal {
@@ -449,6 +500,26 @@ mod tests {
     }
 
     #[test]
+    fn parses_zip_status_from_real_rst_preamble() {
+        let up = ZcashZips.parse(ZIP_0224).expect("zip fixture parses");
+        assert_eq!(up.native, "Final");
+        assert_eq!(up.status, Status::Final);
+    }
+
+    #[test]
+    fn zcash_derives_raw_and_canonical_urls_from_the_padded_id() {
+        let zip = proposal("ZIP-0224", "zcash", "final", "https://zips.z.cash/zip-0224");
+        assert_eq!(
+            ZcashZips.document_url(&zip).as_deref(),
+            Some("https://raw.githubusercontent.com/zcash/zips/main/zips/zip-0224.rst")
+        );
+        assert_eq!(
+            ZcashZips.canonical_spec(&zip).as_deref(),
+            Some("https://zips.z.cash/zip-0224")
+        );
+    }
+
+    #[test]
     fn normalization_tracks_each_ecosystem_vocabulary() {
         assert_eq!(normalize_eip("Last Call"), Some(Status::Review));
         assert_eq!(normalize_eip("Living"), Some(Status::Final));
@@ -457,6 +528,9 @@ mod tests {
         assert_eq!(normalize_bip("Replaced"), Some(Status::Superseded));
         assert_eq!(normalize_simd("Activated"), Some(Status::Final));
         assert_eq!(normalize_simd("Implemented"), Some(Status::Implemented));
+        assert_eq!(normalize_zip("Active"), Some(Status::Final));
+        assert_eq!(normalize_zip("Proposed"), Some(Status::Accepted));
+        assert_eq!(normalize_zip("Obsolete"), Some(Status::Superseded));
     }
 
     #[test]
@@ -574,6 +648,10 @@ mod tests {
         assert_eq!(
             source_for(&sources, Ecosystem::Solana).map(Source::ecosystem),
             Some(Ecosystem::Solana)
+        );
+        assert_eq!(
+            source_for(&sources, Ecosystem::Zcash).map(Source::ecosystem),
+            Some(Ecosystem::Zcash)
         );
     }
 

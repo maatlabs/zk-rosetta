@@ -21,6 +21,9 @@ pub enum Primitive {
     /// Curve25519.
     #[serde(rename = "curve25519")]
     Curve25519,
+    /// Jubjub, the curve embedded in BLS12-381's scalar field (Zcash Sapling).
+    #[serde(rename = "Jubjub")]
+    Jubjub,
     /// Poseidon hash.
     #[serde(rename = "Poseidon")]
     Poseidon,
