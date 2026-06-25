@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-06-25
+
+Freshness automation and coverage for ZK-native chains: zk-rosetta now checks itself against the upstream proposal repositories and extends past the Ethereum/Bitcoin/Solana seed into three ZK-native ecosystems (Zcash, Filecoin, StarkNet).
+
+### Added
+
+- `zkr drift`: a command that checks every catalog entry against its upstream proposal repository---EIP/ERC, BIP, SIMD, ZIP, FIP, and SNIP---and reports any divergence in normalized status or specification URL, in a human-readable or JSON format, exiting non-zero on genuine drift.
+- A scheduled freshness workflow: a cron-triggered job runs `zkr drift` and opens or updates a single tracking issue when an entry falls out of sync with upstream, closing it once the catalog matches again. The automation only ever reports; corrections are made by hand through a pull request, so the dataset stays human-maintained.
+- Catalog coverage for three ZK-native ecosystems: Zcash (the Orchard shielded protocol and the canonical Jubjub encoding rule), Filecoin (on-chain BLS aggregate signatures and Non-Interactive PoRep), and Starknet (typed-data signing in the style of EIP-712 and the standard account interface), each linked to audited implementations where they exist and recording the gaps where they do not.
+- Cross-ecosystem equivalence clusters for newly shared primitives: BLS12-381 now spans Ethereum, Solana, and Filecoin, and Poseidon becomes the first primitive linked across Zcash, Filecoin, and Starknet.
+- The `Jubjub` primitive in the cross-ecosystem taxonomy.
+- A contributor guide for the catalog workflow: end-to-end steps for adding a proposal or an audited-implementation link, with the `validate` gate enforced in CI.
+
 ## [0.2.0] - 2026-06-24
 
 The cross-ecosystem parity harness: zk-rosetta now demonstrates its thesis executably, driving audited verifiers over a shared test vector to prove that one statement verifies identically across ecosystems.
@@ -41,7 +54,8 @@ When adding entries to this changelog for future releases:
 1. **Format**: Follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 2. **Categories**: Use Added, Changed, Deprecated, Removed, Fixed, Security
 3. **Audience**: Write for users, not developers (focus on impact, not implementation)
-4. **Links**: Add comparison links at the bottom: `[0.2.0]: https://github.com/maatlabs/zk-rosetta/compare/v0.1.0...v0.2.0`
+4. **Links**: Add comparison links at the bottom, e.g.: `[0.4.0]: https://github.com/maatlabs/zk-rosetta/compare/v0.3.0...v0.4.0`
 
+[0.3.0]: https://github.com/maatlabs/zk-rosetta/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/maatlabs/zk-rosetta/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/maatlabs/zk-rosetta/releases/tag/v0.1.0

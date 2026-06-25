@@ -1,0 +1,25 @@
+id = "ZIP-0216"
+title = "Require Canonical Jubjub Point Encodings"
+ecosystem = "zcash"
+layer = "L1"
+category = "primitive"
+status = "final"
+native_status = "Final"
+primitive = "Jubjub"
+enables = "Non-malleable Sapling encodings"
+spec = "https://zips.z.cash/zip-0216"
+notes = "Consensus rule requiring canonical, reduced encodings of Jubjub curve points in Sapling, closing an encoding-malleability gap; activated in Network Upgrade 5 (NU5). Jubjub is the twisted Edwards curve defined over BLS12-381's scalar field that Sapling uses for key agreement, note commitments, and the Pedersen hashes inside its circuit."
+sources = ["https://zips.z.cash/protocol/protocol.pdf"]
+
+[[implementations]]
+name = "librustzcash"
+language = "rust"
+url = "https://github.com/zcash/librustzcash"
+audited = true
+audit_ref = "https://research.nccgroup.com/wp-content/uploads/2021/11/NCC_Group_Zcash_NU5_PublicReportFinal.pdf"
+
+[[implementations]]
+name = "jubjub"
+language = "rust"
+url = "https://github.com/zkcrypto/jubjub"
+audited = false

@@ -1,0 +1,32 @@
+id = "ZIP-0224"
+title = "Orchard Shielded Protocol"
+ecosystem = "zcash"
+layer = "L1"
+category = "privacy"
+status = "final"
+native_status = "Final"
+primitive = "Poseidon"
+enables = "Trustless-setup shielded payments"
+spec = "https://zips.z.cash/zip-0224"
+notes = "Orchard defines a new shielded pool built on the Halo 2 proving system, removing the trusted setup that Sapling's Groth16 required. It is realized over the Pallas/Vesta (Pasta) curve cycle and uses the Poseidon hash for its note commitments and nullifiers and Sinsemilla for Merkle-tree hashing; activated in Network Upgrade 5 (NU5)."
+sources = [
+    "https://zips.z.cash/protocol/protocol.pdf",
+    "https://z.cash/upgrade/nu5/",
+]
+
+[[implementations]]
+name = "orchard"
+language = "rust"
+url = "https://github.com/zcash/orchard"
+audited = true
+audit_ref = "https://research.nccgroup.com/wp-content/uploads/2021/11/NCC_Group_Zcash_NU5_PublicReportFinal.pdf"
+
+[[implementations]]
+name = "halo2"
+language = "rust"
+url = "https://github.com/zcash/halo2"
+audited = true
+audit_ref = "https://research.nccgroup.com/wp-content/uploads/2021/11/NCC_Group_Zcash_NU5_PublicReportFinal.pdf"
+
+[relationships]
+equivalent_to = ["FIP-0092", "SNIP-12"]

@@ -18,4 +18,4 @@ audited = true
 audit_ref = "https://research.nccgroup.com/wp-content/uploads/2021/01/NCC_Group_EthereumFoundation_ETHF002_Report_2021-01-20_v1.0.pdf"
 
 [relationships]
-equivalent_to = ["SIMD-0388"]
+equivalent_to = ["SIMD-0388", "FIP-0079"]

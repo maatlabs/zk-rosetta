@@ -1,0 +1,24 @@
+id = "SNIP-6"
+title = "Standard Account Interface"
+ecosystem = "starknet"
+layer = "L2"
+category = "interface"
+status = "review"
+native_status = "Review"
+enables = "Native account abstraction"
+spec = "https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-6.md"
+notes = "Defines the entrypoints every Starknet account contract exposes (`__validate__`, `__execute__`, and `is_valid_signature`), the basis of Starknet's native account abstraction: every account is a smart contract that validates its own transactions, so signature schemes, multisig rules, and key-rotation policies are account-defined rather than fixed by the protocol."
+sources = ["https://docs.starknet.io/"]
+
+[[implementations]]
+name = "cairo-contracts"
+language = "cairo"
+url = "https://github.com/OpenZeppelin/cairo-contracts"
+audited = true
+audit_ref = "https://github.com/OpenZeppelin/cairo-contracts/blob/main/audits/2025-01-v1.0.0.pdf"
+
+[[implementations]]
+name = "argent-contracts-starknet"
+language = "cairo"
+url = "https://github.com/argentlabs/argent-contracts-starknet"
+audited = false
