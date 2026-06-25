@@ -27,6 +27,9 @@ ark-bn254 = { workspace = true, optional = true }
 ark-ff = { workspace = true, optional = true }
 revm = { workspace = true, optional = true }
 
+[dev-dependencies]
+zkr-catalog.workspace = true
+
 [features]
 # Each parity adapter and its heavy ecosystem dependencies are opt-in, so the
 # catalog-facing build of this crate stays lean.

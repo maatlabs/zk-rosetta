@@ -282,6 +282,7 @@ equivalent_to = ["EIP-197"]
             spec: "https://example.com".into(),
             implementations: Vec::new(),
             relationships: Relationships::default(),
+            proven_by: Vec::new(),
             sources: Vec::new(),
             notes: String::new(),
         }

@@ -9,6 +9,7 @@ primitive = "BN254"
 enables = "Groth16 full verification"
 spec = "https://eips.ethereum.org/EIPS/eip-197"
 notes = "Precompiled contract for the optimal ate pairing check on alt_bn128 (BN254); combined with EIP-196 it makes Groth16 verification on Ethereum possible."
+proven_by = ["bn254-groth16-multiplier"]
 
 [relationships]
 depends_on = ["EIP-196"]

@@ -1,11 +1,12 @@
 //! Command-line tools for the zk-rosetta catalog.
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand, ValueEnum};
 use rayon::prelude::*;
-use zkr_catalog::{Fetched, Finding, LoadedProposal, Proposal, Source};
+use zkr_catalog::{Fetched, Finding, LoadedProposal, Primitive, Proposal, Source};
 
 #[derive(Parser)]
 #[command(name = "zkr", version, about)]
@@ -21,6 +22,9 @@ enum Command {
         /// Path to the catalog data directory.
         #[arg(long, default_value = "data")]
         data: PathBuf,
+        /// Path to the committed test-vector directory.
+        #[arg(long, default_value = "vectors")]
+        vectors: PathBuf,
         /// Also check that every spec and implementation URL resolves.
         #[arg(long)]
         online: bool,
@@ -59,7 +63,11 @@ fn main() -> ExitCode {
 
 fn run() -> anyhow::Result<ExitCode> {
     match Cli::parse().command {
-        Command::Validate { data, online } => validate(&data, online),
+        Command::Validate {
+            data,
+            vectors,
+            online,
+        } => validate(&data, &vectors, online),
         Command::Schema => {
             println!("{}", zkr_catalog::schema_json()?);
             Ok(ExitCode::SUCCESS)
@@ -68,10 +76,11 @@ fn run() -> anyhow::Result<ExitCode> {
     }
 }
 
-fn validate(data: &Path, online: bool) -> anyhow::Result<ExitCode> {
+fn validate(data: &Path, vectors: &Path, online: bool) -> anyhow::Result<ExitCode> {
     let loaded = zkr_catalog::load_dir(data)?;
+    let vector_primitives = vector_primitives(vectors)?;
 
-    let mut problems = zkr_catalog::validate(&loaded)
+    let mut problems = zkr_catalog::validate(&loaded, &vector_primitives)
         .iter()
         .map(ToString::to_string)
         .collect::<Vec<String>>();
@@ -91,6 +100,24 @@ fn validate(data: &Path, online: bool) -> anyhow::Result<ExitCode> {
         eprintln!("{} problem(s) found", problems.len());
         Ok(ExitCode::FAILURE)
     }
+}
+
+/// Maps each committed vector's directory name to the primitive it exercises.
+///
+/// This is the authority catalog validation checks every `proven_by` reference
+/// against, so a proposal cannot claim a parity no committed vector backs.
+fn vector_primitives(root: &Path) -> anyhow::Result<HashMap<String, Primitive>> {
+    Ok(zkr_harness::load_dir(root)?
+        .into_iter()
+        .filter_map(|loaded| {
+            loaded
+                .path
+                .parent()
+                .and_then(Path::file_name)
+                .and_then(|name| name.to_str())
+                .map(|name| (name.to_string(), loaded.value.primitive))
+        })
+        .collect())
 }
 
 /// Returns one message per catalog URL that `check` rejects, in catalog order.

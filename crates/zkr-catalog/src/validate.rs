@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use url::Url;
 
 use crate::load::LoadedProposal;
-use crate::model::Proposal;
+use crate::model::{Primitive, Proposal};
 
 /// A single catalog problem found by [`validate`].
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -84,12 +84,40 @@ pub enum ValidationError {
         /// The superseded proposal.
         superseded: String,
     },
+    /// A `proven_by` entry names a vector absent from `vectors/`.
+    #[error("`{id}`: proven_by references unknown vector `{vector}`")]
+    DanglingVector {
+        /// The proposal holding the reference.
+        id: String,
+        /// The referenced vector name.
+        vector: String,
+    },
+    /// A `proven_by` vector exercises a different primitive than the proposal.
+    #[error(
+        "`{id}`: proven_by vector `{vector}` exercises {vector_primitive} but the proposal's primitive is {proposal_primitive}"
+    )]
+    VectorPrimitiveMismatch {
+        /// The proposal holding the reference.
+        id: String,
+        /// The referenced vector name.
+        vector: String,
+        /// The proposal's declared primitive, or `unset` when absent.
+        proposal_primitive: String,
+        /// The primitive the referenced vector exercises.
+        vector_primitive: String,
+    },
 }
 
-/// Validates a loaded catalog, returning every problem found.
+/// Validates a loaded catalog against the committed vectors, returning every
+/// problem found.
 ///
-/// An empty result means the catalog is valid.
-pub fn validate(loaded: &[LoadedProposal]) -> Vec<ValidationError> {
+/// `vectors` maps each `vectors/<name>` directory to the primitive its committed
+/// vector exercises; it is the authority every `proven_by` reference is checked
+/// against. An empty result means the catalog is valid.
+pub fn validate(
+    loaded: &[LoadedProposal],
+    vectors: &HashMap<String, Primitive>,
+) -> Vec<ValidationError> {
     let index = loaded
         .iter()
         .map(|entry| (entry.value.id.as_str(), &entry.value))
@@ -112,6 +140,11 @@ pub fn validate(loaded: &[LoadedProposal]) -> Vec<ValidationError> {
             loaded
                 .iter()
                 .flat_map(|entry| edge_symmetry(&entry.value, &index)),
+        )
+        .chain(
+            loaded
+                .iter()
+                .flat_map(|entry| proven_by_integrity(&entry.value, vectors)),
         )
         .collect()
 }
@@ -284,6 +317,34 @@ fn edge_symmetry(proposal: &Proposal, index: &HashMap<&str, &Proposal>) -> Vec<V
     errors
 }
 
+fn proven_by_integrity(
+    proposal: &Proposal,
+    vectors: &HashMap<String, Primitive>,
+) -> Vec<ValidationError> {
+    proposal
+        .proven_by
+        .iter()
+        .filter_map(|vector| match vectors.get(vector) {
+            None => Some(ValidationError::DanglingVector {
+                id: proposal.id.clone(),
+                vector: vector.clone(),
+            }),
+            Some(found) if Some(*found) != proposal.primitive => {
+                Some(ValidationError::VectorPrimitiveMismatch {
+                    id: proposal.id.clone(),
+                    vector: vector.clone(),
+                    proposal_primitive: proposal
+                        .primitive
+                        .map(zkr_core::label)
+                        .unwrap_or_else(|| "unset".to_string()),
+                    vector_primitive: zkr_core::label(*found),
+                })
+            }
+            Some(_) => None,
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -303,6 +364,7 @@ mod tests {
             spec: "https://example.com/spec".to_string(),
             implementations: Vec::new(),
             relationships: Relationships::default(),
+            proven_by: Vec::new(),
             sources: Vec::new(),
             notes: "notes".to_string(),
         }
@@ -316,19 +378,29 @@ mod tests {
         }
     }
 
+    fn vectors(entries: &[(&str, Primitive)]) -> HashMap<String, Primitive> {
+        entries
+            .iter()
+            .map(|(name, primitive)| (name.to_string(), *primitive))
+            .collect()
+    }
+
     #[test]
     fn accepts_a_consistent_catalog() {
         let mut a = proposal("EIP-1");
         let mut b = proposal("EIP-2");
         a.relationships.equivalent_to = vec!["EIP-2".to_string()];
         b.relationships.equivalent_to = vec!["EIP-1".to_string()];
-        let errors = validate(&[loaded(a), loaded(b)]);
+        let errors = validate(&[loaded(a), loaded(b)], &vectors(&[]));
         assert!(errors.is_empty(), "expected no errors, got {errors:?}");
     }
 
     #[test]
     fn detects_duplicate_ids() {
-        let errors = validate(&[loaded(proposal("EIP-1")), loaded(proposal("EIP-1"))]);
+        let errors = validate(
+            &[loaded(proposal("EIP-1")), loaded(proposal("EIP-1"))],
+            &vectors(&[]),
+        );
         assert!(
             errors
                 .iter()
@@ -340,7 +412,7 @@ mod tests {
     fn detects_dangling_reference() {
         let mut a = proposal("EIP-1");
         a.relationships.depends_on = vec!["EIP-999".to_string()];
-        let errors = validate(&[loaded(a)]);
+        let errors = validate(&[loaded(a)], &vectors(&[]));
         assert!(errors.contains(&ValidationError::DanglingReference {
             id: "EIP-1".to_string(),
             field: "depends_on".to_string(),
@@ -352,7 +424,7 @@ mod tests {
     fn detects_self_reference() {
         let mut a = proposal("EIP-1");
         a.relationships.depends_on = vec!["EIP-1".to_string()];
-        let errors = validate(&[loaded(a)]);
+        let errors = validate(&[loaded(a)], &vectors(&[]));
         assert!(errors.contains(&ValidationError::SelfReference {
             id: "EIP-1".to_string(),
             field: "depends_on".to_string(),
@@ -364,7 +436,7 @@ mod tests {
         let mut a = proposal("EIP-1");
         let b = proposal("EIP-2");
         a.relationships.equivalent_to = vec!["EIP-2".to_string()];
-        let errors = validate(&[loaded(a), loaded(b)]);
+        let errors = validate(&[loaded(a), loaded(b)], &vectors(&[]));
         assert!(errors.contains(&ValidationError::AsymmetricEquivalence {
             a: "EIP-1".to_string(),
             b: "EIP-2".to_string(),
@@ -376,7 +448,7 @@ mod tests {
         let mut a = proposal("EIP-1");
         let b = proposal("EIP-2");
         a.relationships.superseded_by = vec!["EIP-2".to_string()];
-        let errors = validate(&[loaded(a), loaded(b)]);
+        let errors = validate(&[loaded(a), loaded(b)], &vectors(&[]));
         assert!(errors.contains(&ValidationError::InconsistentSupersession {
             superseder: "EIP-2".to_string(),
             superseded: "EIP-1".to_string(),
@@ -387,7 +459,7 @@ mod tests {
     fn detects_malformed_url() {
         let mut a = proposal("EIP-1");
         a.spec = "not-a-url".to_string();
-        let errors = validate(&[loaded(a)]);
+        let errors = validate(&[loaded(a)], &vectors(&[]));
         assert!(
             errors.iter().any(
                 |e| matches!(e, ValidationError::MalformedUrl { field, .. } if field == "spec")
@@ -401,11 +473,52 @@ mod tests {
             path: "data/ethereum/wrong.toml".into(),
             value: proposal("EIP-1"),
         };
-        let errors = validate(&[wrong]);
+        let errors = validate(&[wrong], &vectors(&[]));
         assert!(
             errors
                 .iter()
                 .any(|e| matches!(e, ValidationError::FilenameMismatch { .. }))
         );
+    }
+
+    #[test]
+    fn detects_dangling_vector_reference() {
+        let mut a = proposal("EIP-1");
+        a.primitive = Some(Primitive::Bn254);
+        a.proven_by = vec!["no-such-vector".to_string()];
+        let errors = validate(&[loaded(a)], &vectors(&[("real-vector", Primitive::Bn254)]));
+        assert!(errors.contains(&ValidationError::DanglingVector {
+            id: "EIP-1".to_string(),
+            vector: "no-such-vector".to_string(),
+        }));
+    }
+
+    #[test]
+    fn detects_vector_primitive_mismatch() {
+        let mut a = proposal("EIP-1");
+        a.primitive = Some(Primitive::Bn254);
+        a.proven_by = vec!["bls-vector".to_string()];
+        let errors = validate(
+            &[loaded(a)],
+            &vectors(&[("bls-vector", Primitive::Bls12381)]),
+        );
+        assert!(errors.contains(&ValidationError::VectorPrimitiveMismatch {
+            id: "EIP-1".to_string(),
+            vector: "bls-vector".to_string(),
+            proposal_primitive: "BN254".to_string(),
+            vector_primitive: "BLS12-381".to_string(),
+        }));
+    }
+
+    #[test]
+    fn accepts_a_proven_by_reference_with_matching_primitive() {
+        let mut a = proposal("EIP-1");
+        a.primitive = Some(Primitive::Bn254);
+        a.proven_by = vec!["bn254-vector".to_string()];
+        let errors = validate(
+            &[loaded(a)],
+            &vectors(&[("bn254-vector", Primitive::Bn254)]),
+        );
+        assert!(errors.is_empty(), "expected no errors, got {errors:?}");
     }
 }

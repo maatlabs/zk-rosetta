@@ -35,6 +35,11 @@ pub struct Proposal {
     /// Relationships to other proposals.
     #[serde(default, skip_serializing_if = "Relationships::is_empty")]
     pub relationships: Relationships,
+    /// Names of committed test vectors under `vectors/` whose parity run drives
+    /// audited verifiers over this proposal's primitive, demonstrating the
+    /// `equivalent_to` cluster executably rather than asserting it.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub proven_by: Vec<String>,
     /// References used to write the entry.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub sources: Vec<String>,

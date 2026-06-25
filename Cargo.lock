@@ -6231,6 +6231,7 @@ dependencies = [
  "serde_json",
  "ureq",
  "zkr-catalog",
+ "zkr-harness",
 ]
 
 [[package]]
@@ -6263,6 +6264,7 @@ dependencies = [
  "solana-transaction-error",
  "thiserror 2.0.18",
  "toml",
+ "zkr-catalog",
  "zkr-core",
 ]
 
