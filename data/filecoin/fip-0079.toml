@@ -1,0 +1,30 @@
+id = "FIP-0079"
+title = "Add BLS Aggregate Signatures to FVM"
+ecosystem = "filecoin"
+layer = "L1"
+category = "primitive"
+status = "final"
+native_status = "Final"
+primitive = "BLS12-381"
+enables = "On-chain BLS aggregate signatures"
+spec = "https://github.com/filecoin-project/FIPs/blob/master/FIPS/fip-0079.md"
+notes = "Adds a Filecoin VM syscall for verifying BLS12-381 aggregate signatures, letting on-chain actors check one aggregated signature over many messages rather than verifying each individually. BLS12-381 is the same pairing-friendly curve behind Filecoin's block signatures, its drand randomness beacon, and its Groth16 storage proofs."
+sources = [
+    "https://spec.filecoin.io/",
+]
+
+[[implementations]]
+name = "bls-signatures"
+language = "rust"
+url = "https://github.com/filecoin-project/bls-signatures"
+audited = true
+audit_ref = "https://research.nccgroup.com/wp-content/uploads/2020/10/NCC_Group_ProtocolLabs_PRLB007_Report_2020-10-20_v1.0.pdf"
+
+[[implementations]]
+name = "blstrs"
+language = "rust"
+url = "https://github.com/filecoin-project/blstrs"
+audited = false
+
+[relationships]
+equivalent_to = ["EIP-2537", "SIMD-0388"]

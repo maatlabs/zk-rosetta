@@ -1,0 +1,30 @@
+id = "FIP-0092"
+title = "Non-Interactive PoRep"
+ecosystem = "filecoin"
+layer = "L1"
+category = "proof-system"
+status = "final"
+native_status = "Final"
+primitive = "Poseidon"
+enables = "Non-interactive replication proofs"
+spec = "https://github.com/filecoin-project/FIPs/blob/master/FIPS/fip-0092.md"
+notes = "Makes Filecoin's Proof-of-Replication non-interactive by deriving its challenges through Fiat-Shamir rather than on-chain randomness, removing the precommit/wait/provecommit round trip. The underlying SNARK is a Groth16 proof over BLS12-381 whose circuit hashes the replica's Merkle tree and columns with Poseidon (via the neptune library)."
+sources = [
+    "https://spec.filecoin.io/",
+]
+
+[[implementations]]
+name = "rust-fil-proofs"
+language = "rust"
+url = "https://github.com/filecoin-project/rust-fil-proofs"
+audited = true
+audit_ref = "https://github.com/filecoin-project/rust-fil-proofs/blob/master/audits/Sigma-Prime-Protocol-Labs-Filecoin-Proofs-Security-Review-v2.1.pdf"
+
+[[implementations]]
+name = "neptune"
+language = "rust"
+url = "https://github.com/argumentcomputer/neptune"
+audited = false
+
+[relationships]
+equivalent_to = ["ZIP-0224"]

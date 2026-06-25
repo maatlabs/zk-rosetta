@@ -179,6 +179,30 @@ impl Source for ZcashZips {
     }
 }
 
+/// Filecoin FIPs, located from the GitHub blob URL recorded as the spec.
+struct FilecoinFips;
+
+impl Source for FilecoinFips {
+    fn ecosystem(&self) -> Ecosystem {
+        Ecosystem::Filecoin
+    }
+
+    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+        github_raw(&proposal.spec)
+    }
+
+    fn canonical_spec(&self, _proposal: &Proposal) -> Option<String> {
+        None
+    }
+
+    fn parse(&self, body: &str) -> Result<Upstream, ParseError> {
+        let native = front_matter_value(body, "status").ok_or(ParseError::NoStatusField)?;
+        let status =
+            normalize_fip(&native).ok_or_else(|| ParseError::UnknownStatus(native.clone()))?;
+        Ok(Upstream { native, status })
+    }
+}
+
 /// A single freshness divergence between the catalog and an upstream source.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
@@ -327,6 +351,7 @@ pub fn sources() -> Vec<Box<dyn Source>> {
         Box::new(BitcoinBips),
         Box::new(SolanaSimds),
         Box::new(ZcashZips),
+        Box::new(FilecoinFips),
     ]
 }
 
@@ -434,6 +459,21 @@ fn normalize_zip(native: &str) -> Option<Status> {
     })
 }
 
+/// Maps a FIP native status onto the normalized scale.
+fn normalize_fip(native: &str) -> Option<Status> {
+    Some(match native.to_ascii_lowercase().as_str() {
+        "draft" => Status::Draft,
+        "last call" => Status::Review,
+        "accepted" => Status::Accepted,
+        // `Active` is `Final` that may be revised without a new number.
+        "active" | "final" => Status::Final,
+        "deferred" => Status::Stagnant,
+        "rejected" => Status::Withdrawn,
+        "superseded" => Status::Superseded,
+        _ => return None,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -458,6 +498,10 @@ mod tests {
     const ZIP_0224: &str = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/fixtures/drift/zip-0224.rst"
+    ));
+    const FIP_0079: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/drift/fip-0079.md"
     ));
 
     fn proposal(id: &str, ecosystem: &str, status: &str, spec: &str) -> Proposal {
@@ -507,6 +551,13 @@ mod tests {
     }
 
     #[test]
+    fn parses_fip_status_from_real_front_matter() {
+        let up = FilecoinFips.parse(FIP_0079).expect("fip fixture parses");
+        assert_eq!(up.native, "Final");
+        assert_eq!(up.status, Status::Final);
+    }
+
+    #[test]
     fn zcash_derives_raw_and_canonical_urls_from_the_padded_id() {
         let zip = proposal("ZIP-0224", "zcash", "final", "https://zips.z.cash/zip-0224");
         assert_eq!(
@@ -531,6 +582,9 @@ mod tests {
         assert_eq!(normalize_zip("Active"), Some(Status::Final));
         assert_eq!(normalize_zip("Proposed"), Some(Status::Accepted));
         assert_eq!(normalize_zip("Obsolete"), Some(Status::Superseded));
+        assert_eq!(normalize_fip("Last Call"), Some(Status::Review));
+        assert_eq!(normalize_fip("Active"), Some(Status::Final));
+        assert_eq!(normalize_fip("Superseded"), Some(Status::Superseded));
     }
 
     #[test]
@@ -652,6 +706,10 @@ mod tests {
         assert_eq!(
             source_for(&sources, Ecosystem::Zcash).map(Source::ecosystem),
             Some(Ecosystem::Zcash)
+        );
+        assert_eq!(
+            source_for(&sources, Ecosystem::Filecoin).map(Source::ecosystem),
+            Some(Ecosystem::Filecoin)
         );
     }
 

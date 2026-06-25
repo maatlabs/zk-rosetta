@@ -54,6 +54,8 @@ pub enum Ecosystem {
     Solana,
     /// Zcash and its standards (ZIPs).
     Zcash,
+    /// Filecoin and its standards (FIPs).
+    Filecoin,
 }
 
 impl Ecosystem {
@@ -64,6 +66,7 @@ impl Ecosystem {
             Self::Bitcoin => "bitcoin",
             Self::Solana => "solana",
             Self::Zcash => "zcash",
+            Self::Filecoin => "filecoin",
         }
     }
 }
