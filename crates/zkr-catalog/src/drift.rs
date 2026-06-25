@@ -114,6 +114,8 @@ impl Source for BitcoinBips {
     }
 
     fn canonical_spec(&self, _proposal: &Proposal) -> Option<String> {
+        // A BIP's file extension (`.mediawiki` vs `.md`) is not a function of
+        // the id, so the blob URL cannot be derived independently of the spec.
         None
     }
 
@@ -138,6 +140,8 @@ impl Source for SolanaSimds {
     }
 
     fn canonical_spec(&self, _proposal: &Proposal) -> Option<String> {
+        // A SIMD filename carries an editorial slug (`0129-alt-bn128-...`) that
+        // is not a function of the id, so the blob URL is not id-derivable.
         None
     }
 
@@ -191,8 +195,10 @@ impl Source for FilecoinFips {
         github_raw(&proposal.spec)
     }
 
-    fn canonical_spec(&self, _proposal: &Proposal) -> Option<String> {
-        None
+    fn canonical_spec(&self, proposal: &Proposal) -> Option<String> {
+        let slug = proposal.id.to_ascii_lowercase();
+        slug.starts_with("fip-")
+            .then(|| format!("https://github.com/filecoin-project/FIPs/blob/master/FIPS/{slug}.md"))
     }
 
     fn parse(&self, body: &str) -> Result<Upstream, ParseError> {
@@ -215,8 +221,10 @@ impl Source for StarknetSnips {
         github_raw(&proposal.spec)
     }
 
-    fn canonical_spec(&self, _proposal: &Proposal) -> Option<String> {
-        None
+    fn canonical_spec(&self, proposal: &Proposal) -> Option<String> {
+        let slug = proposal.id.to_ascii_lowercase();
+        slug.starts_with("snip-")
+            .then(|| format!("https://github.com/starknet-io/SNIPs/blob/main/SNIPS/{slug}.md"))
     }
 
     fn parse(&self, body: &str) -> Result<Upstream, ParseError> {
