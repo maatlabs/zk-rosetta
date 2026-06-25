@@ -34,6 +34,15 @@ pub trait Source {
     /// derive it independently of the recorded value; `None` skips spec drift.
     fn canonical_spec(&self, proposal: &Proposal) -> Option<String>;
 
+    /// An alternate document URL to try when the primary [`document_url`] is
+    /// gone, for ecosystems whose proposals can move between sibling
+    /// repositories. The default is `None`: no relocation is possible.
+    ///
+    /// [`document_url`]: Source::document_url
+    fn sibling_url(&self, _proposal: &Proposal) -> Option<String> {
+        None
+    }
+
     /// Reads and normalizes the upstream status from a fetched document body.
     fn parse(&self, body: &str) -> Result<Upstream, ParseError>;
 }
@@ -90,6 +99,23 @@ impl Source for EthereumEips {
             Some(format!("https://ercs.ethereum.org/ERCS/{slug}"))
         } else {
             None
+        }
+    }
+
+    fn sibling_url(&self, proposal: &Proposal) -> Option<String> {
+        // A reclassification keeps the proposal number but swaps both the
+        // EIP/ERC prefix and the repository the document lives in.
+        let slug = proposal.id.to_ascii_lowercase();
+        if let Some(number) = slug.strip_prefix("eip-") {
+            Some(format!(
+                "https://raw.githubusercontent.com/ethereum/ERCs/master/ERCS/erc-{number}.md"
+            ))
+        } else {
+            slug.strip_prefix("erc-").map(|number| {
+                format!(
+                    "https://raw.githubusercontent.com/ethereum/EIPs/master/EIPS/eip-{number}.md"
+                )
+            })
         }
     }
 
@@ -277,6 +303,16 @@ pub enum Finding {
         /// The transport or status error reported by the fetcher.
         error: String,
     },
+    /// The document was gone from its expected repository but present in a
+    /// sibling one, signalling an upstream reclassification (EIP <-> ERC).
+    Reclassified {
+        /// The proposal identifier.
+        id: String,
+        /// The document URL the catalog's id implies, now a 404.
+        expected: String,
+        /// The sibling document URL where the proposal now lives.
+        found: String,
+    },
     /// The source covers the ecosystem but could not locate the document.
     NoLocator {
         /// The proposal identifier.
@@ -301,6 +337,7 @@ impl Finding {
                 | Self::SpecDrift { .. }
                 | Self::Unparsable { .. }
                 | Self::Unreachable { .. }
+                | Self::Reclassified { .. }
         )
     }
 }
@@ -336,6 +373,11 @@ impl fmt::Display for Finding {
             Self::Unreachable { id, url, error } => {
                 write!(f, "drift {id}: upstream unreachable {url}: {error}")
             }
+            Self::Reclassified {
+                id,
+                expected,
+                found,
+            } => write!(f, "drift {id}: reclassified, {expected} now at {found}"),
             Self::NoLocator { id } => write!(f, "note {id}: no upstream document locator"),
             Self::NoSource { id, ecosystem } => {
                 write!(
@@ -345,6 +387,60 @@ impl fmt::Display for Finding {
                 )
             }
         }
+    }
+}
+
+/// The outcome of fetching an upstream document URL, as seen by [`resolve`].
+///
+/// A definitive 404 ([`Fetched::NotFound`]) is distinguished from a transport
+/// or non-404 status error ([`Fetched::Error`]) because only the former is a
+/// clean "the document moved" signal worth chasing into a sibling repository.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Fetched {
+    /// The document was retrieved.
+    Body(String),
+    /// The location returned a definitive HTTP 404.
+    NotFound,
+    /// The fetch failed for a transport or non-404 status reason.
+    Error(String),
+}
+
+/// Resolves a proposal against its upstream source, retrieving documents through
+/// `fetch`.
+///
+/// A present document is compared as usual via [`compare`]. A 404 at the
+/// expected location is retried against the source's [`Source::sibling_url`],
+/// and a hit there is reported as a [`Finding::Reclassified`] rather than a dead
+/// link; anything else (no sibling, the sibling also missing, or a transient
+/// error) stays a [`Finding::Unreachable`]. A non-404 error never triggers a
+/// sibling probe, so a flaky upstream cannot masquerade as a relocation.
+pub fn resolve(
+    source: &dyn Source,
+    proposal: &Proposal,
+    url: &str,
+    fetch: impl Fn(&str) -> Fetched,
+) -> Vec<Finding> {
+    match fetch(url) {
+        Fetched::Body(body) => compare(source, proposal, url, &body),
+        Fetched::NotFound => match source.sibling_url(proposal) {
+            Some(sibling) if matches!(fetch(&sibling), Fetched::Body(_)) => {
+                vec![Finding::Reclassified {
+                    id: proposal.id.clone(),
+                    expected: url.to_string(),
+                    found: sibling,
+                }]
+            }
+            _ => vec![Finding::Unreachable {
+                id: proposal.id.clone(),
+                url: url.to_string(),
+                error: "not found (HTTP 404)".to_string(),
+            }],
+        },
+        Fetched::Error(error) => vec![Finding::Unreachable {
+            id: proposal.id.clone(),
+            url: url.to_string(),
+            error,
+        }],
     }
 }
 
@@ -749,6 +845,99 @@ mod tests {
                 id: "EIP-197".into(),
                 catalog: "https://example.com/wrong".into(),
                 canonical: "https://eips.ethereum.org/EIPS/eip-197".into(),
+            }]
+        );
+    }
+
+    #[test]
+    fn resolve_compares_a_present_document() {
+        // The Body branch must delegate to `compare`: a fetched `Final` against
+        // a recorded `draft` is status drift, not silently dropped.
+        let p = proposal(
+            "EIP-197",
+            "ethereum",
+            "draft",
+            "https://eips.ethereum.org/EIPS/eip-197",
+        );
+        let findings = resolve(&EthereumEips, &p, "url", |_| {
+            Fetched::Body(EIP_197.to_string())
+        });
+        assert_eq!(
+            findings,
+            vec![Finding::StatusDrift {
+                id: "EIP-197".into(),
+                catalog: Status::Draft,
+                upstream: Status::Final,
+                native: "Final".into(),
+            }]
+        );
+    }
+
+    #[test]
+    fn resolve_reports_reclassification_when_the_document_moved_to_the_sibling_repo() {
+        let erc = proposal("ERC-7812", "ethereum", "review", "https://x");
+        let expected = "https://raw.githubusercontent.com/ethereum/ERCs/master/ERCS/erc-7812.md";
+        let sibling = "https://raw.githubusercontent.com/ethereum/EIPs/master/EIPS/eip-7812.md";
+        // The expected location is gone; only the EIPs sibling serves the body,
+        // so the finding doubles as a check that `sibling_url` points there.
+        let findings = resolve(&EthereumEips, &erc, expected, |url| {
+            if url == sibling {
+                Fetched::Body(ERC_7812.to_string())
+            } else {
+                Fetched::NotFound
+            }
+        });
+        assert_eq!(
+            findings,
+            vec![Finding::Reclassified {
+                id: "ERC-7812".into(),
+                expected: expected.into(),
+                found: sibling.into(),
+            }]
+        );
+    }
+
+    #[test]
+    fn resolve_keeps_unreachable_when_neither_repository_has_the_document() {
+        let erc = proposal("ERC-7812", "ethereum", "review", "https://x");
+        let expected = "https://raw.githubusercontent.com/ethereum/ERCs/master/ERCS/erc-7812.md";
+        let findings = resolve(&EthereumEips, &erc, expected, |_| Fetched::NotFound);
+        assert_eq!(
+            findings,
+            vec![Finding::Unreachable {
+                id: "ERC-7812".into(),
+                url: expected.into(),
+                error: "not found (HTTP 404)".into(),
+            }]
+        );
+    }
+
+    #[test]
+    fn resolve_does_not_probe_the_sibling_on_a_transient_error() {
+        // A 500 or timeout is not a clean relocation signal, so resolve must
+        // surface it as-is and never reach for the sibling repository.
+        use std::cell::Cell;
+        let erc = proposal("ERC-7812", "ethereum", "review", "https://x");
+        let expected = "https://raw.githubusercontent.com/ethereum/ERCs/master/ERCS/erc-7812.md";
+        let probed_sibling = Cell::new(false);
+        let findings = resolve(&EthereumEips, &erc, expected, |url| {
+            if url == expected {
+                Fetched::Error("http status: 500".into())
+            } else {
+                probed_sibling.set(true);
+                Fetched::Body(String::new())
+            }
+        });
+        assert!(
+            !probed_sibling.get(),
+            "a transient error must not trigger a sibling probe"
+        );
+        assert_eq!(
+            findings,
+            vec![Finding::Unreachable {
+                id: "ERC-7812".into(),
+                url: expected.into(),
+                error: "http status: 500".into(),
             }]
         );
     }

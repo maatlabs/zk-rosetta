@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand, ValueEnum};
-use zkr_catalog::{Finding, LoadedProposal, Proposal, Source};
+use zkr_catalog::{Fetched, Finding, LoadedProposal, Proposal, Source};
 
 #[derive(Parser)]
 #[command(name = "zkr", version, about)]
@@ -153,19 +153,14 @@ fn check(proposal: &Proposal, sources: &[Box<dyn Source>]) -> Vec<Finding> {
             id: proposal.id.clone(),
         }];
     };
-    match fetch(&url) {
-        Ok(body) => zkr_catalog::compare(source, proposal, &url, &body),
-        Err(err) => vec![Finding::Unreachable {
-            id: proposal.id.clone(),
-            url,
-            error: err.to_string(),
-        }],
-    }
+    zkr_catalog::resolve(source, proposal, &url, fetch)
 }
 
-/// Fetches a URL body, retrying a few times so a single transient network
-/// failure does not look like upstream drift.
-fn fetch(url: &str) -> Result<String, ureq::Error> {
+/// Fetches a URL body for drift resolution. A 404 is reported immediately (it
+/// is deterministic and is the relocation signal `resolve` chases), while other
+/// failures are retried a few times so a single transient blip does not look
+/// like upstream drift.
+fn fetch(url: &str) -> Fetched {
     const ATTEMPTS: usize = 3;
     std::iter::repeat_with(|| {
         ureq::get(url)
@@ -175,12 +170,13 @@ fn fetch(url: &str) -> Result<String, ureq::Error> {
     .take(ATTEMPTS)
     .enumerate()
     .find_map(|(attempt, result)| match result {
-        Ok(body) => Some(Ok(body)),
+        Ok(body) => Some(Fetched::Body(body)),
+        Err(ureq::Error::StatusCode(404)) => Some(Fetched::NotFound),
         Err(_) if attempt + 1 < ATTEMPTS => {
             std::thread::sleep(std::time::Duration::from_millis(500));
             None
         }
-        Err(err) => Some(Err(err)),
+        Err(err) => Some(Fetched::Error(err.to_string())),
     })
     .expect("the final attempt always yields a result")
 }
