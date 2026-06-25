@@ -1,0 +1,28 @@
+id = "SNIP-12"
+title = "Off-chain signatures (a la EIP712)"
+ecosystem = "starknet"
+layer = "L2"
+category = "interface"
+status = "review"
+native_status = "Review"
+primitive = "Poseidon"
+enables = "Typed-data hashing and signing"
+spec = "https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-12.md"
+notes = "Starknet's typed structured-data hashing and signing standard, the EIP-712 analog: it defines a domain-separated hash over typed messages so wallets can display human-readable data and contracts can verify off-chain signatures. The hash is computed with the Starknet Poseidon over the STARK-friendly prime field."
+sources = ["https://docs.starknet.io/"]
+
+[[implementations]]
+name = "cairo-contracts"
+language = "cairo"
+url = "https://github.com/OpenZeppelin/cairo-contracts"
+audited = true
+audit_ref = "https://github.com/OpenZeppelin/cairo-contracts/blob/main/audits/2025-01-v1.0.0.pdf"
+
+[[implementations]]
+name = "starknet.js"
+language = "typescript"
+url = "https://github.com/starknet-io/starknet.js"
+audited = false
+
+[relationships]
+equivalent_to = ["ZIP-0224", "FIP-0092"]

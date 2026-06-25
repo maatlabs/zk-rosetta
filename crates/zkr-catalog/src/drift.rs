@@ -203,6 +203,30 @@ impl Source for FilecoinFips {
     }
 }
 
+/// Starknet SNIPs, located from the GitHub blob URL recorded as the spec.
+struct StarknetSnips;
+
+impl Source for StarknetSnips {
+    fn ecosystem(&self) -> Ecosystem {
+        Ecosystem::Starknet
+    }
+
+    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+        github_raw(&proposal.spec)
+    }
+
+    fn canonical_spec(&self, _proposal: &Proposal) -> Option<String> {
+        None
+    }
+
+    fn parse(&self, body: &str) -> Result<Upstream, ParseError> {
+        let native = front_matter_value(body, "status").ok_or(ParseError::NoStatusField)?;
+        let status =
+            normalize_snip(&native).ok_or_else(|| ParseError::UnknownStatus(native.clone()))?;
+        Ok(Upstream { native, status })
+    }
+}
+
 /// A single freshness divergence between the catalog and an upstream source.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
@@ -352,6 +376,7 @@ pub fn sources() -> Vec<Box<dyn Source>> {
         Box::new(SolanaSimds),
         Box::new(ZcashZips),
         Box::new(FilecoinFips),
+        Box::new(StarknetSnips),
     ]
 }
 
@@ -474,6 +499,20 @@ fn normalize_fip(native: &str) -> Option<Status> {
     })
 }
 
+/// Maps a SNIP native status onto the normalized scale.
+fn normalize_snip(native: &str) -> Option<Status> {
+    Some(match native.to_ascii_lowercase().as_str() {
+        "idea" => Status::Idea,
+        "draft" => Status::Draft,
+        "review" | "last call" => Status::Review,
+        // `Living` standards (e.g. SNIP-1) are continuously-maintained finals.
+        "final" | "living" => Status::Final,
+        "stagnant" => Status::Stagnant,
+        "withdrawn" => Status::Withdrawn,
+        _ => return None,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -502,6 +541,10 @@ mod tests {
     const FIP_0079: &str = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/fixtures/drift/fip-0079.md"
+    ));
+    const SNIP_12: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/drift/snip-12.md"
     ));
 
     fn proposal(id: &str, ecosystem: &str, status: &str, spec: &str) -> Proposal {
@@ -558,6 +601,13 @@ mod tests {
     }
 
     #[test]
+    fn parses_snip_status_from_real_front_matter() {
+        let up = StarknetSnips.parse(SNIP_12).expect("snip fixture parses");
+        assert_eq!(up.native, "Review");
+        assert_eq!(up.status, Status::Review);
+    }
+
+    #[test]
     fn zcash_derives_raw_and_canonical_urls_from_the_padded_id() {
         let zip = proposal("ZIP-0224", "zcash", "final", "https://zips.z.cash/zip-0224");
         assert_eq!(
@@ -585,6 +635,9 @@ mod tests {
         assert_eq!(normalize_fip("Last Call"), Some(Status::Review));
         assert_eq!(normalize_fip("Active"), Some(Status::Final));
         assert_eq!(normalize_fip("Superseded"), Some(Status::Superseded));
+        assert_eq!(normalize_snip("Living"), Some(Status::Final));
+        assert_eq!(normalize_snip("Idea"), Some(Status::Idea));
+        assert_eq!(normalize_snip("Last Call"), Some(Status::Review));
     }
 
     #[test]
@@ -710,6 +763,10 @@ mod tests {
         assert_eq!(
             source_for(&sources, Ecosystem::Filecoin).map(Source::ecosystem),
             Some(Ecosystem::Filecoin)
+        );
+        assert_eq!(
+            source_for(&sources, Ecosystem::Starknet).map(Source::ecosystem),
+            Some(Ecosystem::Starknet)
         );
     }
 
