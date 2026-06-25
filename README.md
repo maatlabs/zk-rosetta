@@ -15,7 +15,7 @@
 
 </div>
 
-zk-rosetta is a cross-ecosystem catalog of zero-knowledge-related protocol proposals. Each entry maps a proposal to its specification, a normalized status, the cryptographic primitive it exposes, and its relationships to proposals in other ecosystems, so that one primitive can be read across the conventions of different chains.
+zk-rosetta is a cross-ecosystem catalog of zero-knowledge-related protocol proposals. Each entry maps a proposal to its specification, a normalized status, the cryptographic primitive it exposes, and its relationships to proposals in other ecosystems, so that one primitive can be read across the conventions of different chains. The catalog currently spans Ethereum, Bitcoin, Solana, Zcash, Filecoin, and Starknet, with cross-ecosystem equivalence clusters for shared primitives such as BLS12-381 (Ethereum, Solana, Filecoin) and Poseidon (Zcash, Filecoin, Starknet).
 
 zk-rosetta never authors cryptography. It catalogs proposals and links to audited implementations where they exist, recording where they do not; it does not implement, fork, or vendor any verifier, primitive, or curve operation.
 
@@ -27,7 +27,7 @@ zk-rosetta/
 ├── crates/                # the Cargo workspace
 │   ├── zkr-core           # shared infrastructure: primitive taxonomy, TOML loader, label helper
 │   ├── zkr-catalog        # proposal data model, loader, validator (the Rust type is the schema)
-│   ├── zkr-cli            # the zkr command-line tool (validate, schema)
+│   ├── zkr-cli            # the zkr command-line tool (validate, schema, drift)
 │   ├── zkr-site           # static-site generator: catalog index + Rosetta comparison view
 │   └── zkr-harness        # parity harness: shared vector format + audited-verifier adapters
 ├── vectors/               # committed, ecosystem-neutral test vectors (each with provenance)
@@ -47,6 +47,14 @@ Pass `--online` to additionally check that every specification and implementatio
 ```sh
 cargo run -p zkr-cli -- schema
 ```
+
+Check every entry against its upstream proposal repository and report any that have drifted---a status or specification URL that no longer matches the source:
+
+```sh
+cargo run -p zkr-cli -- drift
+```
+
+A scheduled workflow runs the same check and opens (or updates) a single tracking issue when an entry falls out of sync with upstream; corrections are always made by hand through a pull request, so the dataset stays human-maintained.
 
 Generate the static catalog site into `dist/`:
 
