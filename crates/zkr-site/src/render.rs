@@ -8,11 +8,12 @@
 //! intra-site links are relative, so the result is servable from any base path.
 
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 
 use anyhow::Context;
-use minijinja::{Environment, context};
+use minijinja::{AutoEscape, Environment, Error, Output, State, Value, context, escape_formatter};
 use serde::Serialize;
 use zkr_catalog::{Proposal, load_dir};
 use zkr_core::label;
@@ -102,11 +103,40 @@ pub fn build(data: &Path, out: &Path) -> anyhow::Result<usize> {
 
 fn environment() -> anyhow::Result<Environment<'static>> {
     let mut env = Environment::new();
+    env.set_formatter(escape_href_slashes);
     env.add_template("base.html", BASE)?;
     env.add_template("index.html", INDEX)?;
     env.add_template("proposal.html", PROPOSAL)?;
     env.add_template("rosetta.html", ROSETTA)?;
     Ok(env)
+}
+
+/// An HTML formatter matching the default escaping but leaving `/` intact.
+///
+/// Every catalogued URL is emitted into an `href`, where the stock escaper also
+/// encodes `/` as `&#x2f;`---valid but noisy. This escapes only the characters
+/// that are dangerous in an attribute context, so the rendered behavior is
+/// identical while the source reads cleanly. Safe values, non-strings, and the
+/// non-HTML escape modes are deferred to the stock formatter unchanged, so no
+/// injection-relevant escaping is weakened.
+fn escape_href_slashes(out: &mut Output, state: &State, value: &Value) -> Result<(), Error> {
+    if state.auto_escape() == AutoEscape::Html
+        && !value.is_safe()
+        && let Some(text) = value.as_str()
+    {
+        return text
+            .chars()
+            .try_for_each(|ch| match ch {
+                '<' => out.write_str("&lt;"),
+                '>' => out.write_str("&gt;"),
+                '&' => out.write_str("&amp;"),
+                '"' => out.write_str("&quot;"),
+                '\'' => out.write_str("&#x27;"),
+                other => out.write_char(other),
+            })
+            .map_err(Error::from);
+    }
+    escape_formatter(out, state, value)
 }
 
 fn write(path: &Path, contents: &str) -> anyhow::Result<()> {
@@ -293,11 +323,27 @@ equivalent_to = ["EIP-197"]
         assert!(page.contains("<strong>BN254</strong>"));
         // The equivalence edge links to the partner proposal's page.
         assert!(page.contains("proposals/simd-0129.html"));
-        // The audited implementation surfaces its report link (hosts survive
-        // HTML attribute escaping; the `/` separators are entity-encoded).
-        assert!(page.contains("example.com") && page.contains(">report</a>"));
+        assert!(page.contains(r#"href="https://example.com/audit""#));
+        assert!(page.contains(">report</a>"));
+        assert!(!page.contains("&#x2f;"));
 
         fs::remove_dir_all(out.parent().unwrap()).ok();
+    }
+
+    #[test]
+    fn escaper_keeps_slashes_yet_still_escapes_dangerous_characters() {
+        let mut env = environment().expect("environment builds");
+        env.add_template("probe.html", r#"<a href="{{ u }}">{{ u }}</a>"#)
+            .unwrap();
+        let html = env
+            .get_template("probe.html")
+            .unwrap()
+            .render(context! { u => "https://x.test/a/b?p=1&q=<2>" })
+            .unwrap();
+        // Slashes stay literal; `&`, `<`, and `>` remain escaped, so the href is
+        // clean without weakening attribute-context injection safety.
+        assert!(html.contains(r#"href="https://x.test/a/b?p=1&amp;q=&lt;2&gt;""#));
+        assert!(!html.contains("&#x2f;"));
     }
 
     #[test]
