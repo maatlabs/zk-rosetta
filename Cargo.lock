@@ -6182,6 +6182,7 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
+ "serde_json",
  "ureq",
  "zkr-catalog",
 ]

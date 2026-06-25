@@ -6,10 +6,12 @@
 //! (see [`schema_json`]), and correctness is enforced by strict deserialization
 //! plus the invariant checks in [`validate()`].
 
+mod drift;
 mod load;
 mod model;
 mod validate;
 
+pub use drift::{Finding, ParseError, Source, Upstream, compare, source_for, sources};
 pub use load::{LoadError, LoadedProposal, load_dir, parse_proposal};
 pub use model::{
     Category, Ecosystem, Implementation, Layer, Primitive, Proposal, Relationships, Status,
