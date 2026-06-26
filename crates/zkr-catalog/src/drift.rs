@@ -261,6 +261,32 @@ impl Source for StarknetSnips {
     }
 }
 
+/// Mina MIPs, located from the GitHub blob URL recorded as the spec.
+struct MinaMips;
+
+impl Source for MinaMips {
+    fn ecosystem(&self) -> Ecosystem {
+        Ecosystem::Mina
+    }
+
+    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+        github_raw(&proposal.spec)
+    }
+
+    fn canonical_spec(&self, _proposal: &Proposal) -> Option<String> {
+        // A MIP filename carries an editorial slug (`0003-kimchi`) that is not a
+        // function of the id, so the blob URL is not id-derivable.
+        None
+    }
+
+    fn parse(&self, body: &str) -> Result<Upstream, ParseError> {
+        let native = front_matter_value(body, "status").ok_or(ParseError::NoStatusField)?;
+        let status =
+            normalize_mina(&native).ok_or_else(|| ParseError::UnknownStatus(native.clone()))?;
+        Ok(Upstream { native, status })
+    }
+}
+
 /// A single freshness divergence between the catalog and an upstream source.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
@@ -481,6 +507,7 @@ pub fn sources() -> Vec<Box<dyn Source>> {
         Box::new(ZcashZips),
         Box::new(FilecoinFips),
         Box::new(StarknetSnips),
+        Box::new(MinaMips),
     ]
 }
 
@@ -617,6 +644,23 @@ fn normalize_snip(native: &str) -> Option<Status> {
     })
 }
 
+/// Maps a Mina MIP native status onto the normalized scale.
+fn normalize_mina(native: &str) -> Option<Status> {
+    Some(match native.to_ascii_lowercase().as_str() {
+        "idea" => Status::Idea,
+        "draft" => Status::Draft,
+        "review" | "last call" => Status::Review,
+        // Mina labels a shipped MIP with several spellings of one terminal state
+        // (`Finalisation`, `Finalization`, `Finallize`), all denoting a proposal
+        // that completed the process and is live on the network.
+        "finalisation" | "finalization" | "finallize" | "finalize" | "final" => Status::Final,
+        // `Inactive` marks a MIP that stalled before shipping.
+        "inactive" | "stagnant" => Status::Stagnant,
+        "withdrawn" => Status::Withdrawn,
+        _ => return None,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -649,6 +693,10 @@ mod tests {
     const SNIP_12: &str = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/fixtures/drift/snip-12.md"
+    ));
+    const MIP_0003: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/drift/mip-0003.md"
     ));
 
     fn proposal(id: &str, ecosystem: &str, status: &str, spec: &str) -> Proposal {
@@ -712,6 +760,15 @@ mod tests {
     }
 
     #[test]
+    fn parses_mina_status_from_real_front_matter() {
+        // Kimchi shipped, but Mina records that terminal state as `Finalisation`;
+        // the mapping must fold it to `final` so the live MIP shows no drift.
+        let up = MinaMips.parse(MIP_0003).expect("mip fixture parses");
+        assert_eq!(up.native, "Finalisation");
+        assert_eq!(up.status, Status::Final);
+    }
+
+    #[test]
     fn zcash_derives_raw_and_canonical_urls_from_the_padded_id() {
         let zip = proposal("ZIP-0224", "zcash", "final", "https://zips.z.cash/zip-0224");
         assert_eq!(
@@ -742,6 +799,10 @@ mod tests {
         assert_eq!(normalize_snip("Living"), Some(Status::Final));
         assert_eq!(normalize_snip("Idea"), Some(Status::Idea));
         assert_eq!(normalize_snip("Last Call"), Some(Status::Review));
+        assert_eq!(normalize_mina("Finalisation"), Some(Status::Final));
+        assert_eq!(normalize_mina("Finalization"), Some(Status::Final));
+        assert_eq!(normalize_mina("Inactive"), Some(Status::Stagnant));
+        assert_eq!(normalize_mina("Frozen"), None);
     }
 
     #[test]
@@ -964,6 +1025,10 @@ mod tests {
         assert_eq!(
             source_for(&sources, Ecosystem::Starknet).map(Source::ecosystem),
             Some(Ecosystem::Starknet)
+        );
+        assert_eq!(
+            source_for(&sources, Ecosystem::Mina).map(Source::ecosystem),
+            Some(Ecosystem::Mina)
         );
     }
 

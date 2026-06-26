@@ -1,0 +1,24 @@
+id = "MIP-0003"
+title = "Kimchi, a new proof system"
+ecosystem = "mina"
+layer = "L1"
+category = "proof-system"
+status = "final"
+native_status = "Finalisation"
+primitive = "Poseidon"
+enables = "Kimchi, Mina's upgraded Plonk proof system"
+spec = "https://github.com/MinaProtocol/MIPs/blob/main/MIPS/mip-0003-kimchi.md"
+notes = "Kimchi is Mina's Plonk-based proof system and the successor to its original Plonk variant, adding lookup tables (Plookup) and custom gates for range checks and non-native arithmetic. It is realized over the Pallas/Vesta (Pasta) curve cycle, which is what makes Mina's proof recursion (Pickles) possible, and it uses the Poseidon hash over the Pasta base fields for its Fiat-Shamir sponge and in-circuit hashing. Mina instantiates Poseidon over the Pasta fields, the same hash family other ecosystems expose over their own fields rather than one shared function."
+sources = [
+    "https://o1-labs.github.io/proof-systems/",
+    "https://docs.minaprotocol.com/",
+]
+
+[[implementations]]
+name = "proof-systems"
+language = "rust"
+url = "https://github.com/o1-labs/proof-systems"
+audited = false
+
+[relationships]
+equivalent_to = ["ZIP-0224", "FIP-0092", "SNIP-12"]

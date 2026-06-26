@@ -25,4 +25,4 @@ url = "https://github.com/argumentcomputer/neptune"
 audited = false
 
 [relationships]
-equivalent_to = ["ZIP-0224", "SNIP-12"]
+equivalent_to = ["ZIP-0224", "SNIP-12", "MIP-0003"]

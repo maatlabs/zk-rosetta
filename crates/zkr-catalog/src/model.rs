@@ -63,6 +63,8 @@ pub enum Ecosystem {
     Filecoin,
     /// Starknet and its standards (SNIPs).
     Starknet,
+    /// Mina and its standards (MIPs).
+    Mina,
 }
 
 impl Ecosystem {
@@ -75,6 +77,7 @@ impl Ecosystem {
             Self::Zcash => "zcash",
             Self::Filecoin => "filecoin",
             Self::Starknet => "starknet",
+            Self::Mina => "mina",
         }
     }
 }
