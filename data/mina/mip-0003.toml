@@ -21,4 +21,10 @@ url = "https://github.com/o1-labs/proof-systems"
 audited = false
 
 [relationships]
-equivalent_to = ["ZIP-0224", "FIP-0092", "SNIP-12"]
+equivalent_to = [
+    "ZIP-0224",
+    "FIP-0092",
+    "SNIP-12",
+    "aleo-varuna",
+    "penumbra-groth16",
+]

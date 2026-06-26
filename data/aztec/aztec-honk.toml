@@ -1,0 +1,25 @@
+id = "aztec-honk"
+title = "UltraHonk, Aztec's proof system"
+ecosystem = "aztec"
+kind = "spec"
+layer = "L2"
+category = "proof-system"
+status = "final"
+native_status = "Alpha mainnet"
+primitive = "BN254"
+enables = "UltraHonk, Aztec's PLONKish proof system over BN254, proving private smart-contract execution"
+spec = "https://docs.aztec.network/aztec/concepts/advanced/circuits"
+notes = "Aztec is a privacy-focused zk-rollup on Ethereum whose Barretenberg backend proves private smart-contract execution with UltraHonk, a PLONKish proof system over the BN254 (alt_bn128) curve. It uses the BN254/Grumpkin curve cycle (Grumpkin is BN254 with its base and scalar fields swapped) to fold expensive non-native group operations into native ones, the basis of its Goblin Plonk recursion. The cross-ecosystem hook is the BN254 curve that Ethereum exposes as the alt_bn128 precompiles (EIP-196, EIP-197) and Solana as the sol_alt_bn128_* syscalls (SIMD-0129); Aztec drives the same curve through a full proving system rather than a pairing precompile, and its verifier is not wired into the parity harness."
+sources = [
+    "https://barretenberg.aztec.network/docs/",
+    "https://github.com/AztecProtocol/aztec-packages/blob/master/barretenberg/README.md",
+]
+
+[[implementations]]
+name = "Barretenberg"
+language = "cpp"
+url = "https://github.com/AztecProtocol/aztec-packages"
+audited = false
+
+[relationships]
+equivalent_to = ["EIP-196", "EIP-197", "SIMD-0129"]

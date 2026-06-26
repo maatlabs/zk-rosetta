@@ -19,4 +19,4 @@ audited = true
 audit_ref = "https://github.com/Lightprotocol/light-protocol/tree/main/audits"
 
 [relationships]
-equivalent_to = ["EIP-196", "EIP-197"]
+equivalent_to = ["EIP-196", "EIP-197", "aztec-honk"]

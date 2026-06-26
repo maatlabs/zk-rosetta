@@ -1,0 +1,32 @@
+id = "aleo-varuna"
+title = "Varuna, Aleo's proof system"
+ecosystem = "aleo"
+kind = "spec"
+layer = "L1"
+category = "proof-system"
+status = "final"
+native_status = "Mainnet"
+primitive = "Poseidon"
+enables = "Varuna, Aleo's universal-SRS SNARK over BLS12-377, with Poseidon for in-circuit and Fiat-Shamir hashing"
+spec = "https://github.com/ProvableHQ/snarkVM/tree/mainnet/algorithms/src/snark/varuna"
+notes = "Varuna is Aleo's zkSNARK, a variant of Marlin: a universal, updatable-SRS proof system over the pairing-friendly BLS12-377 curve, built on KZG polynomial commitments. It hashes with Poseidon over the BLS12-377 scalar field, both inside circuits and for its Fiat-Shamir transcript, and pairs with an embedded twisted Edwards curve (Edwards BLS12-377) for in-circuit elliptic-curve operations. Poseidon is the cross-ecosystem hook here, instantiated over Aleo's own field rather than as one shared function: it is the same hash family that Zcash, Filecoin, Starknet, Mina, and Penumbra expose over their respective fields, a conceptual equivalence the parity harness cannot run."
+sources = [
+    "https://github.com/ProvableHQ/welcome/tree/master/documentation",
+    "https://aleo.org/post/aleo-completes-security-audits-of-snarkos-and-snarkvm/",
+]
+
+[[implementations]]
+name = "snarkVM"
+language = "rust"
+url = "https://github.com/ProvableHQ/snarkVM"
+audited = true
+audit_ref = "https://aleo.org/post/aleo-completes-security-audits-of-snarkos-and-snarkvm/"
+
+[relationships]
+equivalent_to = [
+    "ZIP-0224",
+    "FIP-0092",
+    "SNIP-12",
+    "MIP-0003",
+    "penumbra-groth16",
+]

@@ -1,0 +1,25 @@
+id = "namada-masp"
+title = "MASP, Namada's Multi-Asset Shielded Pool"
+ecosystem = "namada"
+kind = "spec"
+layer = "L1"
+category = "privacy"
+status = "final"
+native_status = "Mainnet"
+primitive = "BLS12-381"
+enables = "Shielded transfers for arbitrary assets via a Sapling-derived Groth16 circuit over BLS12-381"
+spec = "https://specs.namada.net/masp.html"
+notes = "Namada's Multi-Asset Shielded Pool (MASP) extends the Zcash Sapling circuit so that many asset types share a single shielded pool, adding a Convert circuit for shielded conversions between assets. Like Sapling it proves with Groth16 over the pairing-friendly BLS12-381 curve, using the embedded Jubjub curve for in-circuit commitments and signatures. The cross-ecosystem hook is BLS12-381, the same pairing curve Ethereum (EIP-2537) and Filecoin (FIP-0079) expose; the in-circuit Jubjub usage mirrors Zcash's own canonical encoding (ZIP-0216). Namada's verifier is not wired into the parity harness."
+sources = [
+    "https://docs.namada.net/users/shielded-accounts",
+    "https://github.com/anoma/masp",
+]
+
+[[implementations]]
+name = "masp"
+language = "rust"
+url = "https://github.com/anoma/masp"
+audited = false
+
+[relationships]
+equivalent_to = ["EIP-2537", "FIP-0079", "SIMD-0388"]

@@ -26,4 +26,4 @@ url = "https://github.com/filecoin-project/blstrs"
 audited = false
 
 [relationships]
-equivalent_to = ["EIP-2537", "SIMD-0388"]
+equivalent_to = ["EIP-2537", "SIMD-0388", "namada-masp"]

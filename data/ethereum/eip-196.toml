@@ -12,4 +12,4 @@ notes = "Precompiled contracts for point addition (ECADD) and scalar multiplicat
 proven_by = ["bn254-groth16-multiplier"]
 
 [relationships]
-equivalent_to = ["SIMD-0129"]
+equivalent_to = ["SIMD-0129", "aztec-honk"]

@@ -25,4 +25,10 @@ url = "https://github.com/starknet-io/starknet.js"
 audited = false
 
 [relationships]
-equivalent_to = ["ZIP-0224", "FIP-0092", "MIP-0003"]
+equivalent_to = [
+    "ZIP-0224",
+    "FIP-0092",
+    "MIP-0003",
+    "aleo-varuna",
+    "penumbra-groth16",
+]

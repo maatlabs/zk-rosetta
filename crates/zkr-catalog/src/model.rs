@@ -90,6 +90,16 @@ pub enum Ecosystem {
     Starknet,
     /// Mina and its standards (MIPs).
     Mina,
+    /// Aleo and its zero-knowledge stack (snarkVM).
+    Aleo,
+    /// Aztec and its zero-knowledge stack (Barretenberg).
+    Aztec,
+    /// Midnight and its zero-knowledge stack (Halo2).
+    Midnight,
+    /// Penumbra and its zero-knowledge stack (decaf377).
+    Penumbra,
+    /// Namada and its zero-knowledge stack (MASP).
+    Namada,
 }
 
 impl Ecosystem {
@@ -103,6 +113,11 @@ impl Ecosystem {
             Self::Filecoin => "filecoin",
             Self::Starknet => "starknet",
             Self::Mina => "mina",
+            Self::Aleo => "aleo",
+            Self::Aztec => "aztec",
+            Self::Midnight => "midnight",
+            Self::Penumbra => "penumbra",
+            Self::Namada => "namada",
         }
     }
 }
