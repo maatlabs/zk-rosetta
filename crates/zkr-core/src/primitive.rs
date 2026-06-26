@@ -34,3 +34,23 @@ pub enum Primitive {
     #[serde(rename = "Blake2")]
     Blake2,
 }
+
+impl Primitive {
+    /// Whether the parity harness can, in principle, prove bit-identical
+    /// verdicts for this primitive across ecosystems.
+    ///
+    /// True only for a single fixed function or relation with a shared
+    /// on-the-wire encoding: the pairing-friendly curves [`Self::Bn254`] and
+    /// [`Self::Bls12381`] and the signature curves [`Self::Secp256r1`] and
+    /// [`Self::Secp256k1`]. Parameterized constructions (such as
+    /// [`Self::Poseidon`], instantiated over a different field per chain) and
+    /// setup-bound ones ([`Self::Kzg`]) are conceptually equivalent across
+    /// ecosystems yet are different functions that cannot agree on the same
+    /// bytes, so they are excluded.
+    pub fn parity_provable(self) -> bool {
+        matches!(
+            self,
+            Self::Bn254 | Self::Bls12381 | Self::Secp256r1 | Self::Secp256k1
+        )
+    }
+}

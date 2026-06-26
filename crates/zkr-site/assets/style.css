@@ -158,6 +158,10 @@ table.catalog tbody tr:hover { background: var(--bg-soft); }
 .badge.audited { color: var(--audited); border-color: var(--audited); }
 .badge.unaudited { color: var(--unaudited); border-color: var(--unaudited); }
 .badge.primitive { background: rgba(110, 138, 253, 0.16); color: var(--fg); }
+.badge.proven { background: rgba(20, 241, 149, 0.18); color: var(--audited); border-color: rgba(20, 241, 149, 0.5); }
+
+.legend { color: var(--fg-soft); font-size: 0.92rem; margin-top: 0.75rem; }
+.legend .badge.proven { margin-right: 0.15rem; }
 
 .crumbs { color: var(--fg-soft); font-size: 0.9rem; margin-bottom: 1rem; }
 .crumbs span { margin: 0 0.35rem; }

@@ -42,6 +42,8 @@ struct RosettaGroup<'a> {
     primitive: String,
     /// Distinct ecosystems the primitive surfaces in, in display order.
     ecosystems: Vec<String>,
+    /// Whether the harness proves this cluster's parity executably.
+    proven: bool,
     proposals: Vec<&'a ProposalView>,
 }
 
@@ -182,9 +184,18 @@ fn rosetta_groups(views: &[ProposalView]) -> Vec<RosettaGroup<'_>> {
             ecosystems.dedup();
             ecosystems.sort();
             ecosystems.dedup();
+
+            let parity_curve = proposals
+                .first()
+                .and_then(|view| view.proposal.primitive)
+                .is_some_and(|primitive| primitive.parity_provable());
+            let wired = proposals
+                .iter()
+                .any(|view| !view.proposal.proven_by.is_empty());
             RosettaGroup {
                 primitive,
                 ecosystems,
+                proven: parity_curve && wired,
                 proposals,
             }
         })
@@ -219,6 +230,7 @@ primitive = "BN254"
 enables = "Groth16 verification"
 spec = "https://eips.ethereum.org/EIPS/eip-197"
 notes = "Pairing check on **BN254**."
+proven_by = ["bn254-groth16-multiplier"]
 
 [[implementations]]
 name = "alt-bn128 precompile"
@@ -357,6 +369,7 @@ equivalent_to = ["EIP-197"]
         // The group spans both ecosystems and links both proposals.
         assert!(rosetta.contains("ethereum") && rosetta.contains("solana"));
         assert!(rosetta.contains("eip-197.html") && rosetta.contains("simd-0129.html"));
+        assert!(rosetta.contains("proven parity"));
 
         fs::remove_dir_all(out.parent().unwrap()).ok();
     }
@@ -384,5 +397,47 @@ equivalent_to = ["EIP-197"]
         assert_eq!(groups[0].primitive, "BN254");
         assert_eq!(groups[0].ecosystems.len(), 2);
         assert_eq!(groups[1].primitive, "KZG");
+    }
+
+    #[test]
+    fn proven_marks_only_fixed_curve_clusters_with_a_wired_vector() {
+        let view = |proposal: Proposal| ProposalView {
+            slug: proposal.id.to_ascii_lowercase(),
+            notes_html: String::new(),
+            proposal,
+        };
+
+        // A fixed curve with a member wired to a committed vector: proven.
+        let mut bn_evm = sample("EIP-197", Ecosystem::Ethereum, Some(Primitive::Bn254));
+        bn_evm.proven_by = vec!["bn254-groth16-multiplier".into()];
+        let bn_svm = sample("SIMD-0129", Ecosystem::Solana, Some(Primitive::Bn254));
+        // A fixed curve with no wired vector: not proven.
+        let r1 = sample("EIP-7951", Ecosystem::Ethereum, Some(Primitive::Secp256r1));
+        // A parameterized primitive, even with a vector wired: not proven.
+        let mut poseidon = sample("ZIP-0224", Ecosystem::Zcash, Some(Primitive::Poseidon));
+        poseidon.proven_by = vec!["unsupported-vector".into()];
+
+        let views = [bn_evm, bn_svm, r1, poseidon]
+            .into_iter()
+            .map(view)
+            .collect::<Vec<_>>();
+        let groups = rosetta_groups(&views);
+        let proven = |primitive: &str| {
+            groups
+                .iter()
+                .find(|group| group.primitive == primitive)
+                .unwrap_or_else(|| panic!("missing {primitive} group"))
+                .proven
+        };
+
+        assert!(proven("BN254"), "fixed curve with a wired vector is proven");
+        assert!(
+            !proven("secp256r1"),
+            "fixed curve without a wired vector is not proven"
+        );
+        assert!(
+            !proven("Poseidon"),
+            "a parameterized primitive is never proven, even with a vector wired"
+        );
     }
 }
