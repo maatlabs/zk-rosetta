@@ -7,6 +7,7 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand, ValueEnum};
 use rayon::prelude::*;
 use zkr_catalog::{Fetched, Finding, LoadedProposal, Primitive, Proposal, Source};
+use zkr_harness::LoadedVector;
 
 #[derive(Parser)]
 #[command(name = "zkr", version, about)]
@@ -39,6 +40,22 @@ enum Command {
         /// Output format for the drift report.
         #[arg(long, value_enum, default_value_t = Format::Human)]
         format: Format,
+    },
+    /// Inspect the committed parity test vectors.
+    Vectors {
+        #[command(subcommand)]
+        command: VectorCommand,
+    },
+}
+
+/// Operations over the committed parity test vectors.
+#[derive(Subcommand)]
+enum VectorCommand {
+    /// Check that every committed vector is structurally well-formed.
+    Validate {
+        /// Path to the committed test-vector directory.
+        #[arg(long, default_value = "vectors")]
+        vectors: PathBuf,
     },
 }
 
@@ -73,7 +90,40 @@ fn run() -> anyhow::Result<ExitCode> {
             Ok(ExitCode::SUCCESS)
         }
         Command::Drift { data, format } => drift(&data, format),
+        Command::Vectors { command } => match command {
+            VectorCommand::Validate { vectors } => validate_vectors(&vectors),
+        },
     }
+}
+
+/// Validates the committed test vectors, failing if any is structurally malformed.
+fn validate_vectors(root: &Path) -> anyhow::Result<ExitCode> {
+    let loaded = zkr_harness::load_dir(root)?;
+    let problems = vector_problems(&loaded);
+
+    if problems.is_empty() {
+        println!("validated {} vectors: ok", loaded.len());
+        Ok(ExitCode::SUCCESS)
+    } else {
+        problems
+            .iter()
+            .for_each(|problem| eprintln!("invalid: {problem}"));
+        eprintln!("{} problem(s) found", problems.len());
+        Ok(ExitCode::FAILURE)
+    }
+}
+
+/// Returns one message per structural problem in the loaded vectors, in the
+/// loader's stable path-sorted order.
+fn vector_problems(loaded: &[LoadedVector]) -> Vec<String> {
+    loaded
+        .iter()
+        .flat_map(|entry| {
+            zkr_harness::validate(&entry.value)
+                .into_iter()
+                .map(move |error| format!("{}: {error}", entry.path.display()))
+        })
+        .collect()
 }
 
 fn validate(data: &Path, vectors: &Path, online: bool) -> anyhow::Result<ExitCode> {
@@ -286,6 +336,26 @@ mod tests {
                 "`EIP-1`: unreachable https://a/audit: boom".to_string(),
                 "`EIP-2`: unreachable https://b/spec: boom".to_string(),
             ]
+        );
+    }
+
+    #[test]
+    fn vector_problems_pass_on_committed_vectors_and_flag_a_malformed_one() {
+        let root = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../vectors"));
+        let loaded = zkr_harness::load_dir(root).expect("committed vectors should load");
+        assert!(!loaded.is_empty(), "expected at least one committed vector");
+        assert!(
+            vector_problems(&loaded).is_empty(),
+            "committed vectors must validate clean"
+        );
+
+        let mut broken = loaded;
+        broken[0].value.vk.ic.pop();
+        let problems = vector_problems(&broken);
+        let path = broken[0].path.display().to_string();
+        assert!(
+            problems.iter().any(|problem| problem.contains(&path)),
+            "expected a problem naming `{path}`, got {problems:?}"
         );
     }
 }
