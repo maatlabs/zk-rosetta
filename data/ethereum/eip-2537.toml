@@ -9,6 +9,7 @@ primitive = "BLS12-381"
 enables = "128-bit-secure ZK systems"
 spec = "https://eips.ethereum.org/EIPS/eip-2537"
 notes = "Precompile for BLS12-381 curve operations (G1 and G2 addition, scalar multiplication, pairing, and multi-scalar multiplication); BLS12-381 offers a full 128-bit security level and underpins Ethereum consensus BLS signatures, Zcash Sapling Groth16, and many modern proof systems."
+proven_by = ["bls12-381-bls-signature"]
 
 [[implementations]]
 name = "blst"

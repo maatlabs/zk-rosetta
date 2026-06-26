@@ -2,7 +2,7 @@
 
 use std::path::Path;
 
-use zkr_harness::{Expected, LoadedVector, Primitive, ProofSystem, load_dir, validate};
+use zkr_harness::{Expected, LoadedVector, Primitive, Statement, load_dir, validate};
 
 fn committed() -> Vec<LoadedVector> {
     let root = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../vectors"));
@@ -39,14 +39,16 @@ fn bn254_groth16_multiplier_proves_three_times_eleven() {
         .expect("the bn254-groth16-multiplier vector should be present");
     let vector = loaded.value;
 
-    assert_eq!(vector.proof_system, ProofSystem::Groth16);
     assert_eq!(vector.primitive, Primitive::Bn254);
     assert_eq!(vector.expected, Expected::Accept);
-    assert_eq!(vector.vk.ic.len(), vector.public_inputs.len() + 1);
+    let Statement::Groth16(groth16) = vector.statement else {
+        panic!("the bn254-groth16-multiplier vector should be a Groth16 statement");
+    };
+    assert_eq!(groth16.vk.ic.len(), groth16.public_inputs.len() + 1);
 
     // The statement's only public signal is the product c = 3 * 11 = 33.
     let mut expected = [0u8; 32];
     expected[31] = 33;
-    assert_eq!(vector.public_inputs.len(), 1);
-    assert_eq!(vector.public_inputs[0].as_bytes(), expected);
+    assert_eq!(groth16.public_inputs.len(), 1);
+    assert_eq!(groth16.public_inputs[0].as_bytes(), expected);
 }

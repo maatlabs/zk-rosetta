@@ -56,5 +56,14 @@ ark-ff = "0.6"
 
 # EVM parity adapter: run an audited Groth16 BN254 verifier (a committed,
 # compiled fixture) in the revm in-process EVM, exercising the real EIP-196 and
-# EIP-197 alt_bn128 precompiles.
+# EIP-197 alt_bn128 precompiles. revm 33 also exposes the EIP-2537 BLS12-381
+# precompiles under the Prague spec, used by the BLS signature parity adapter.
 revm = "33"
+
+# Filecoin parity adapter: drive the audited bls-signatures BLS12-381 verifier
+# over the shared vector, selecting the blst/blstrs backend Filecoin runs in
+# production; blstrs supplies the audited point parsing the adapter marshals into.
+bls-signatures = { version = "0.15", default-features = false, features = [
+    "blst",
+] }
+blstrs = "0.7"

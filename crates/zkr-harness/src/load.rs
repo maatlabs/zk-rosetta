@@ -37,16 +37,28 @@ pub fn load_dir(root: &Path) -> Result<Vec<LoadedVector>, LoadError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::SAMPLE_VECTOR;
-    use crate::model::{Expected, Primitive, ProofSystem};
+    use crate::model::{Expected, Primitive, Statement};
+    use crate::{SAMPLE_BLS_VECTOR, SAMPLE_VECTOR};
 
     #[test]
     fn parses_a_valid_vector() {
         let vector = parse_vector(SAMPLE_VECTOR).expect("sample vector should parse");
-        assert_eq!(vector.proof_system, ProofSystem::Groth16);
         assert_eq!(vector.primitive, Primitive::Bn254);
         assert_eq!(vector.expected, Expected::Accept);
-        assert_eq!(vector.vk.ic.len(), 2);
+        let Statement::Groth16(groth16) = vector.statement else {
+            panic!("sample vector should be a Groth16 statement");
+        };
+        assert_eq!(groth16.vk.ic.len(), 2);
+    }
+
+    #[test]
+    fn parses_a_bls_signature_statement() {
+        let vector = parse_vector(SAMPLE_BLS_VECTOR).expect("bls sample should parse");
+        assert_eq!(vector.primitive, Primitive::Bls12381);
+        assert!(
+            matches!(vector.statement, Statement::BlsSignature(_)),
+            "the bls sample should deserialize into a BLS signature statement"
+        );
     }
 
     #[test]
@@ -74,7 +86,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_unknown_proof_system() {
+    fn rejects_unknown_statement_kind() {
         let toml = SAMPLE_VECTOR.replace("groth16", "plonk");
         assert!(parse_vector(&toml).is_err());
     }

@@ -350,9 +350,15 @@ mod tests {
         );
 
         let mut broken = loaded;
-        broken[0].value.vk.ic.pop();
+        let groth16 = broken
+            .iter()
+            .position(|loaded| matches!(loaded.value.statement, zkr_harness::Statement::Groth16(_)))
+            .expect("a Groth16 vector should be committed");
+        if let zkr_harness::Statement::Groth16(statement) = &mut broken[groth16].value.statement {
+            statement.vk.ic.pop();
+        }
         let problems = vector_problems(&broken);
-        let path = broken[0].path.display().to_string();
+        let path = broken[groth16].path.display().to_string();
         assert!(
             problems.iter().any(|problem| problem.contains(&path)),
             "expected a problem naming `{path}`, got {problems:?}"

@@ -4,16 +4,38 @@ use serde::de::{self, Deserializer};
 use serde::{Deserialize, Serialize, Serializer};
 pub use zkr_core::Primitive;
 
-/// One ecosystem-neutral test vector: a statement, its verifying key, and a proof.
+/// One ecosystem-neutral test vector: a primitive, the verdict a correct
+/// verifier must reach, and the statement that verifier checks.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Vector {
-    /// The proof system the vector targets.
-    pub proof_system: ProofSystem,
     /// The cryptographic primitive, named as in the catalog's taxonomy.
     pub primitive: Primitive,
     /// Whether a correct verifier must accept or reject the vector.
     pub expected: Expected,
+    /// The statement an audited verifier checks, tagged by its kind.
+    pub statement: Statement,
+}
+
+/// The statement a vector pins, in a shape specific to its proof system.
+///
+/// The externally tagged form keys the statement's fields under the system name
+/// (`[statement.groth16]`, `[statement.bls-signature]`), so each adapter matches
+/// the variant it understands and the loader rejects an unknown system.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Statement {
+    /// A Groth16 zk-SNARK: public inputs verified against a key and a proof.
+    Groth16(Box<Groth16>),
+    /// A BLS signature, verified as the pairing relation `e(g1, signature) ==
+    /// e(public_key, message_hash)`.
+    BlsSignature(Box<BlsSignature>),
+}
+
+/// A Groth16 zk-SNARK statement: public inputs, the verifying key, and the proof.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Groth16 {
     /// The public signals, in statement order.
     pub public_inputs: Vec<Element>,
     /// The verifying key.
@@ -22,12 +44,18 @@ pub struct Vector {
     pub proof: Proof,
 }
 
-/// The proof system a vector's verifying key and proof belong to.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ProofSystem {
-    /// The Groth16 zk-SNARK.
-    Groth16,
+/// A BLS signature statement over BLS12-381, with the message already hashed to
+/// the curve so adapters verify the identical pairing relation on identical
+/// bytes, never hashing the message themselves.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BlsSignature {
+    /// The public key in G1, `pk = sk * g1`.
+    pub public_key: G1,
+    /// The signature in G2, `sig = sk * H(m)`.
+    pub signature: G2,
+    /// The hashed message `H(m)` in G2.
+    pub message_hash: G2,
 }
 
 /// Whether a correct verifier must accept or reject the vector.

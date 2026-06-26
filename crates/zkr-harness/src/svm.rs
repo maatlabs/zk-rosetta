@@ -19,7 +19,7 @@ use solana_signer::Signer;
 use solana_transaction::Transaction;
 use solana_transaction_error::TransactionError;
 
-use crate::model::{Element, G1, G2, Primitive, ProofSystem, Vector};
+use crate::model::{Element, G1, G2, Groth16, Primitive, Statement, Vector};
 
 /// The compiled on-chain program the adapter runs in `litesvm`, built from
 /// `programs/zkr-svm-program` (see that crate's README for reproduction).
@@ -62,7 +62,10 @@ pub enum SvmError {
 /// `Ok(false)` means it rejected it. An `Err` signals a harness or setup
 /// fault, never a verdict on the proof itself.
 pub fn verify(vector: &Vector) -> Result<bool, SvmError> {
-    let data = marshal(vector)?;
+    let data = match &vector.statement {
+        Statement::Groth16(groth16) if vector.primitive == Primitive::Bn254 => marshal(groth16)?,
+        _ => return Err(SvmError::Unsupported),
+    };
 
     let mut svm = LiteSVM::new();
     let program_id = Address::new_unique();
@@ -96,27 +99,24 @@ pub fn verify(vector: &Vector) -> Result<bool, SvmError> {
     }
 }
 
-/// Lays the vector out in the on-chain program's fixed instruction format.
-fn marshal(vector: &Vector) -> Result<Vec<u8>, SvmError> {
-    let [public_input] = vector.public_inputs.as_slice() else {
+/// Lays the statement out in the on-chain program's fixed instruction format.
+fn marshal(groth16: &Groth16) -> Result<Vec<u8>, SvmError> {
+    let [public_input] = groth16.public_inputs.as_slice() else {
         return Err(SvmError::Unsupported);
     };
-    let [ic0, ic1] = vector.vk.ic.as_slice() else {
+    let [ic0, ic1] = groth16.vk.ic.as_slice() else {
         return Err(SvmError::Unsupported);
     };
-    if vector.proof_system != ProofSystem::Groth16 || vector.primitive != Primitive::Bn254 {
-        return Err(SvmError::Unsupported);
-    }
 
     let sections: [&[u8]; 10] = [
-        &negate_g1(&vector.proof.a)?,
-        &g2_be(&vector.proof.b)?,
-        &g1_be(&vector.proof.c)?,
+        &negate_g1(&groth16.proof.a)?,
+        &g2_be(&groth16.proof.b)?,
+        &g1_be(&groth16.proof.c)?,
         &fixed32(public_input)?,
-        &g1_be(&vector.vk.alpha_g1)?,
-        &g2_be(&vector.vk.beta_g2)?,
-        &g2_be(&vector.vk.gamma_g2)?,
-        &g2_be(&vector.vk.delta_g2)?,
+        &g1_be(&groth16.vk.alpha_g1)?,
+        &g2_be(&groth16.vk.beta_g2)?,
+        &g2_be(&groth16.vk.gamma_g2)?,
+        &g2_be(&groth16.vk.delta_g2)?,
         &g1_be(ic0)?,
         &g1_be(ic1)?,
     ];

@@ -1001,6 +1001,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "bls-signatures"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ecc7fce0356b52c2483bb6188cc8bdc11add526bce75d1a44e5e5d889a6ab008"
+dependencies = [
+ "blst",
+ "blstrs",
+ "ff",
+ "group",
+ "pairing",
+ "rand_core 0.6.4",
+ "subtle",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "blst"
 version = "0.3.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6251,6 +6267,8 @@ version = "0.3.0"
 dependencies = [
  "ark-bn254 0.6.0",
  "ark-ff 0.6.0",
+ "bls-signatures",
+ "blstrs",
  "hex",
  "litesvm",
  "revm",
