@@ -6,7 +6,7 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand, ValueEnum};
 use rayon::prelude::*;
-use zkr_catalog::{Fetched, Finding, LoadedProposal, Primitive, Proposal, Source};
+use zkr_catalog::{Entry, Fetched, Finding, LoadedEntry, Primitive, Source, SourceKind};
 use zkr_harness::LoadedVector;
 
 #[derive(Parser)]
@@ -30,7 +30,7 @@ enum Command {
         #[arg(long)]
         online: bool,
     },
-    /// Print the JSON Schema for a catalog proposal.
+    /// Print the JSON Schema for a catalog entry.
     Schema,
     /// Check catalog entries against their upstream proposal repositories.
     Drift {
@@ -141,7 +141,7 @@ fn validate(data: &Path, vectors: &Path, online: bool) -> anyhow::Result<ExitCod
     }
 
     if problems.is_empty() {
-        println!("validated {} proposals: ok", loaded.len());
+        println!("validated {} entries: ok", loaded.len());
         Ok(ExitCode::SUCCESS)
     } else {
         problems
@@ -155,7 +155,7 @@ fn validate(data: &Path, vectors: &Path, online: bool) -> anyhow::Result<ExitCod
 /// Maps each committed vector's directory name to the primitive it exercises.
 ///
 /// This is the authority catalog validation checks every `proven_by` reference
-/// against, so a proposal cannot claim a parity no committed vector backs.
+/// against, so an entry cannot claim a parity no committed vector backs.
 fn vector_primitives(root: &Path) -> anyhow::Result<HashMap<String, Primitive>> {
     Ok(zkr_harness::load_dir(root)?
         .into_iter()
@@ -177,20 +177,20 @@ fn vector_primitives(root: &Path) -> anyhow::Result<HashMap<String, Primitive>> 
 /// is materialized in catalog order first, then resolved with an order-preserving
 /// parallel collect.
 fn unreachable_links(
-    loaded: &[LoadedProposal],
+    loaded: &[LoadedEntry],
     check: impl Fn(&str) -> Result<(), String> + Sync,
 ) -> Vec<String> {
     let links: Vec<(&str, &str)> =
         loaded
             .iter()
-            .flat_map(|entry| {
-                let proposal = &entry.value;
-                std::iter::once(proposal.spec.as_str())
-                    .chain(proposal.sources.iter().map(String::as_str))
-                    .chain(proposal.implementations.iter().flat_map(|i| {
+            .flat_map(|loaded_entry| {
+                let entry = &loaded_entry.value;
+                std::iter::once(entry.spec.as_str())
+                    .chain(entry.sources.iter().map(String::as_str))
+                    .chain(entry.implementations.iter().flat_map(|i| {
                         std::iter::once(i.url.as_str()).chain(i.audit_ref.as_deref())
                     }))
-                    .map(move |url| (proposal.id.as_str(), url))
+                    .map(move |url| (entry.id.as_str(), url))
             })
             .collect();
 
@@ -218,7 +218,7 @@ fn drift(data: &Path, format: Format) -> anyhow::Result<ExitCode> {
         Format::Human => {
             findings.iter().for_each(|finding| eprintln!("{finding}"));
             eprintln!(
-                "checked {} proposals: {drifted} drifted, {} note(s)",
+                "checked {} entries: {drifted} drifted, {} note(s)",
                 loaded.len(),
                 findings.len() - drifted
             );
@@ -232,20 +232,27 @@ fn drift(data: &Path, format: Format) -> anyhow::Result<ExitCode> {
     })
 }
 
-/// Checks a single proposal against its ecosystem's upstream source.
-fn check(proposal: &Proposal, sources: &[Box<dyn Source>]) -> Vec<Finding> {
-    let Some(source) = zkr_catalog::source_for(sources, proposal.ecosystem) else {
+/// Checks a single entry against its ecosystem's upstream source.
+///
+/// Spec entries document a section of a protocol specification rather than a
+/// numbered proposal, so they carry no upstream status to drift against and are
+/// skipped here; their reachability is covered by `validate --online` instead.
+fn check(entry: &Entry, sources: &[Box<dyn Source>]) -> Vec<Finding> {
+    if entry.kind == SourceKind::Spec {
+        return Vec::new();
+    }
+    let Some(source) = zkr_catalog::source_for(sources, entry.ecosystem) else {
         return vec![Finding::NoSource {
-            id: proposal.id.clone(),
-            ecosystem: proposal.ecosystem,
+            id: entry.id.clone(),
+            ecosystem: entry.ecosystem,
         }];
     };
-    let Some(url) = source.document_url(proposal) else {
+    let Some(url) = source.document_url(entry) else {
         return vec![Finding::NoLocator {
-            id: proposal.id.clone(),
+            id: entry.id.clone(),
         }];
     };
-    zkr_catalog::resolve(source, proposal, &url, fetch)
+    zkr_catalog::resolve(source, entry, &url, fetch)
 }
 
 /// Fetches a URL body for drift resolution. A 404 is reported immediately (it
@@ -293,21 +300,33 @@ fn reachable(url: &str) -> Result<(), ureq::Error> {
 
 #[cfg(test)]
 mod tests {
-    use zkr_catalog::parse_proposal;
+    use zkr_catalog::parse_entry;
 
     use super::*;
 
-    fn loaded(toml: &str) -> LoadedProposal {
-        let value = parse_proposal(toml).expect("fixture parses");
+    fn loaded(toml: &str) -> LoadedEntry {
+        let value = parse_entry(toml).expect("fixture parses");
         let path = format!("data/ethereum/{}.toml", value.id.to_ascii_lowercase()).into();
-        LoadedProposal { path, value }
+        LoadedEntry { path, value }
+    }
+
+    #[test]
+    fn spec_entries_are_not_drift_checked() {
+        // A spec entry is skipped even when its ecosystem has a drift source, so
+        // it never reaches a network fetch and yields no finding.
+        let entry = loaded(
+            "id = \"ethereum-evm-spec\"\ntitle = \"t\"\necosystem = \"ethereum\"\nkind = \"spec\"\n\
+             layer = \"L1\"\ncategory = \"primitive\"\nstatus = \"final\"\nnative_status = \"Live\"\n\
+             enables = \"e\"\nspec = \"https://example.com/spec\"\nnotes = \"n\"\n",
+        );
+        assert!(check(&entry.value, &zkr_catalog::sources()).is_empty());
     }
 
     #[test]
     fn online_failures_are_reported_in_catalog_order_across_every_url_class() {
-        // Two proposals: the first carries a spec, a source, and an
+        // Two entries: the first carries a spec, a source, and an
         // implementation with an audit_ref; the second only a spec. Failing one
-        // url from different proposals and classes proves the check visits every
+        // url from different entries and classes proves the check visits every
         // class (including the optional audit_ref) and that the parallel pass
         // returns failures in catalog order, not completion order.
         let first = loaded(

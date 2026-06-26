@@ -1,6 +1,6 @@
 <div align="center">
   <h1>ZK Rosetta</h1>
-  <p><strong>A cross-ecosystem catalog of zero-knowledge protocol proposals---with executable proof that one statement verifies identically across chains.</strong></p>
+  <p><strong>A cross-ecosystem catalog of zero-knowledge protocol specifications---with executable proof that one statement verifies identically across chains.</strong></p>
 </div>
 
 <div align="center">
@@ -15,18 +15,18 @@
 
 </div>
 
-zk-rosetta is a cross-ecosystem catalog of zero-knowledge-related protocol proposals. Each entry maps a proposal to its specification, a normalized status, the cryptographic primitive it exposes, and its relationships to proposals in other ecosystems, so that one primitive can be read across the conventions of different chains. The catalog currently spans Ethereum, Bitcoin, Solana, Zcash, Filecoin, and Starknet, with cross-ecosystem equivalence clusters for shared primitives such as BLS12-381 (Ethereum, Solana, Filecoin) and Poseidon (Zcash, Filecoin, Starknet).
+zk-rosetta is a cross-ecosystem catalog of zero-knowledge-related protocols. Each entry maps to a spec/proposal, a normalized status, the cryptographic primitive it exposes, and its relationships to entries in other ecosystems, so that one primitive can be read across the conventions of different chains. The catalog currently spans Ethereum, Bitcoin, Solana, Zcash, Filecoin, and Starknet, with cross-ecosystem equivalence clusters for shared primitives such as BLS12-381 (Ethereum, Solana, Filecoin) and Poseidon (Zcash, Filecoin, Starknet).
 
-zk-rosetta never authors cryptography. It catalogs proposals and links to audited implementations where they exist, recording where they do not; it does not implement, fork, or vendor any verifier, primitive, or curve operation.
+zk-rosetta never authors cryptography. It catalogs protocol specs/proposals and links to audited implementations where they exist, recording where they do not; it does not implement, fork, or vendor any verifier, primitive, or curve operation.
 
 ## Repository layout
 
 ```text
 zk-rosetta/
-├── data/                  # catalog source: one TOML file per proposal (data/<ecosystem>/<id>.toml)
+├── data/                  # catalog source: one TOML file per entry (data/<ecosystem>/<id>.toml)
 ├── crates/                # the Cargo workspace
 │   ├── zkr-core           # shared infrastructure: primitive taxonomy, TOML loader, label helper
-│   ├── zkr-catalog        # proposal data model, loader, validator (the Rust type is the schema)
+│   ├── zkr-catalog        # catalog data model, loader, validator (the Rust type is the schema)
 │   ├── zkr-cli            # the zkr command-line tool (validate, schema, drift)
 │   ├── zkr-site           # static-site generator: catalog index + Rosetta comparison view
 │   └── zkr-harness        # parity harness: shared vector format + audited-verifier adapters
@@ -42,7 +42,7 @@ Validate the catalog:
 cargo run -p zkr-cli -- validate
 ```
 
-Pass `--online` to additionally check that every specification and implementation link resolves. Print the proposal JSON Schema, derived from the Rust types, for editor and contributor tooling:
+Pass `--online` to additionally check that every specification and implementation link resolves. Print the catalog-entry JSON Schema, derived from the Rust types, for editor and contributor tooling:
 
 ```sh
 cargo run -p zkr-cli -- schema
@@ -66,7 +66,7 @@ The generated pages carry full-text search markup; the search index is produced 
 
 ## Parity harness
 
-Beyond cataloging proposals, zk-rosetta demonstrates the Rosetta thesis executably: it drives audited verifiers over a shared, ecosystem-neutral test vector and shows that one statement verifies identically across ecosystems. Run the demonstration:
+Beyond cataloging entries, zk-rosetta demonstrates the Rosetta thesis executably: it drives audited verifiers over a shared, ecosystem-neutral test vector and shows that one statement verifies identically across ecosystems. Run the demonstration:
 
 ```sh
 cargo test -p zkr-harness --all-features

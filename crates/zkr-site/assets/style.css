@@ -158,6 +158,7 @@ table.catalog tbody tr:hover { background: var(--bg-soft); }
 .badge.audited { color: var(--audited); border-color: var(--audited); }
 .badge.unaudited { color: var(--unaudited); border-color: var(--unaudited); }
 .badge.primitive { background: rgba(110, 138, 253, 0.16); color: var(--fg); }
+.badge.kind-spec { background: rgba(110, 138, 253, 0.10); color: var(--fg-soft); border-style: dashed; }
 .badge.proven { background: rgba(20, 241, 149, 0.18); color: var(--audited); border-color: rgba(20, 241, 149, 0.5); }
 
 .legend { color: var(--fg-soft); font-size: 0.92rem; margin-top: 0.75rem; }
@@ -166,8 +167,8 @@ table.catalog tbody tr:hover { background: var(--bg-soft); }
 .crumbs { color: var(--fg-soft); font-size: 0.9rem; margin-bottom: 1rem; }
 .crumbs span { margin: 0 0.35rem; }
 
-.proposal-header h1 { margin: 0; font-size: clamp(1.6rem, 4vw, 2.2rem); }
-.proposal-header .subtitle { color: var(--fg-soft); margin: 0.25rem 0 0.75rem; font-size: 1.05rem; }
+.entry-header h1 { margin: 0; font-size: clamp(1.6rem, 4vw, 2.2rem); }
+.entry-header .subtitle { color: var(--fg-soft); margin: 0.25rem 0 0.75rem; font-size: 1.05rem; }
 .badges { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 
 dl.meta { display: grid; gap: 0.5rem; margin: 1.5rem 0; }

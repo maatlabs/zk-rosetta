@@ -5,7 +5,7 @@
   {% if ids %}
   <div class="rel">
     <dt>{{ heading }}</dt>
-    <dd>{% for rid in ids %}<a href="{{ root }}proposals/{{ rid | lower }}.html">{{ rid }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</dd>
+    <dd>{% for rid in ids %}<a href="{{ root }}entries/{{ rid | lower }}.html">{{ rid }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</dd>
   </div>
   {% endif %}
 {% endmacro %}
@@ -13,7 +13,7 @@
 {% block content %}
     <article data-pagefind-body>
       <nav class="crumbs"><a href="{{ root }}index.html">Catalog</a> <span>/</span> {{ p.id }}</nav>
-      <header class="proposal-header">
+      <header class="entry-header">
         <h1>{{ p.id }}</h1>
         <p class="subtitle">{{ p.title }}</p>
         <p class="badges">
@@ -21,6 +21,7 @@
           <span class="badge">{{ p.layer }}</span>
           <span class="badge" data-pagefind-filter="category">{{ p.category }}</span>
           <span class="badge status status-{{ p.status }}">{{ p.status }}</span>
+          {% if p.kind == "spec" %}<span class="badge kind-spec">protocol spec</span>{% endif %}
           {% if p.primitive %}<span class="badge primitive" data-pagefind-filter="primitive">{{ p.primitive }}</span>{% endif %}
         </p>
       </header>
@@ -51,7 +52,7 @@
         </ul>
       </section>
       {% else %}
-      <section><h2>Implementations</h2><p class="gap">No audited implementation is catalogued for this proposal yet.</p></section>
+      <section><h2>Implementations</h2><p class="gap">No audited implementation is catalogued for this entry yet.</p></section>
       {% endif %}
 
       {% if p.relationships %}

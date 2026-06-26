@@ -32,7 +32,7 @@ fn main() -> ExitCode {
     let Command::Build { data, out } = command;
     match render::build(&data, &out) {
         Ok(count) => {
-            println!("rendered {count} proposals to {}", out.display());
+            println!("rendered {count} entries to {}", out.display());
             ExitCode::SUCCESS
         }
         Err(err) => {

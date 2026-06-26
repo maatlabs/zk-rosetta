@@ -14,9 +14,9 @@
         <p class="ecosystem-tags">{% for eco in group.ecosystems %}<span class="badge eco eco-{{ eco }}">{{ eco }}</span>{% endfor %}</p>
       </header>
       <div class="rosetta-cards">
-        {% for p in group.proposals %}
+        {% for p in group.entries %}
         <article class="card">
-          <h3><a href="{{ root }}proposals/{{ p.slug }}.html">{{ p.id }}</a></h3>
+          <h3><a href="{{ root }}entries/{{ p.slug }}.html">{{ p.id }}</a></h3>
           <span class="badge eco eco-{{ p.ecosystem }}">{{ p.ecosystem }}</span>
           <p class="card-title">{{ p.title }}</p>
           {% if p.implementations %}

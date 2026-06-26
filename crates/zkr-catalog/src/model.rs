@@ -4,17 +4,25 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 pub use zkr_core::Primitive;
 
-/// A single zero-knowledge-related protocol proposal.
+/// A single zero-knowledge-related catalog entry: a capability realized in an
+/// ecosystem, mapped to its canonical specification and to the audited
+/// implementations that realize it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct Proposal {
-    /// Native identifier, e.g. `EIP-197`, `BIP-340`, or `SIMD-0129`.
+pub struct Entry {
+    /// Stable catalog identifier: a native proposal id (`EIP-197`, `BIP-340`,
+    /// `SIMD-0129`) for a [`SourceKind::Proposal`] entry, or an
+    /// `<ecosystem>-<feature>` slug for a [`SourceKind::Spec`] entry.
     pub id: String,
-    /// The proposal's official title.
+    /// The entry's official title.
     pub title: String,
-    /// The ecosystem the proposal belongs to.
+    /// The ecosystem the entry belongs to.
     pub ecosystem: Ecosystem,
-    /// The layer at which the proposal operates.
+    /// Whether this entry maps to a numbered improvement proposal or a section
+    /// of a chain's protocol specification.
+    #[serde(default)]
+    pub kind: SourceKind,
+    /// The layer at which the entry operates.
     pub layer: Layer,
     /// The catalog's normalized category.
     pub category: Category,
@@ -22,32 +30,49 @@ pub struct Proposal {
     pub status: Status,
     /// The ecosystem's own status string, preserved verbatim.
     pub native_status: String,
-    /// The cryptographic primitive the proposal exposes, if any.
+    /// The cryptographic primitive the entry exposes, if any.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub primitive: Option<Primitive>,
-    /// One-line summary of what the proposal unlocks.
+    /// One-line summary of what the entry unlocks.
     pub enables: String,
     /// Canonical specification URL.
     pub spec: String,
-    /// Known implementations of the proposal.
+    /// Known implementations of the entry.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub implementations: Vec<Implementation>,
-    /// Relationships to other proposals.
+    /// Relationships to other entries.
     #[serde(default, skip_serializing_if = "Relationships::is_empty")]
     pub relationships: Relationships,
     /// Names of committed test vectors under `vectors/` whose parity run drives
-    /// audited verifiers over this proposal's primitive, demonstrating the
+    /// audited verifiers over this entry's primitive, demonstrating the
     /// `equivalent_to` cluster executably rather than asserting it.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub proven_by: Vec<String>,
     /// References used to write the entry.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub sources: Vec<String>,
-    /// Prose description of the proposal.
+    /// Prose description of the entry.
     pub notes: String,
 }
 
-/// The ecosystem a proposal belongs to.
+/// What kind of specification a catalog [`Entry`] maps to.
+///
+/// A [`SourceKind::Proposal`] is a numbered improvement proposal with an
+/// upstream document and status, tracked for freshness by `drift`. A
+/// [`SourceKind::Spec`] is a section of a chain's protocol specification,
+/// identified by a stable catalog slug and not drift-tracked; its reachability
+/// is still covered by `validate --online`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub enum SourceKind {
+    /// A numbered improvement proposal (EIP, BIP, SIMD, ZIP, FIP, SNIP, MIP, ...).
+    #[default]
+    Proposal,
+    /// A section of a chain's protocol specification.
+    Spec,
+}
+
+/// The ecosystem an entry belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum Ecosystem {
@@ -82,7 +107,7 @@ impl Ecosystem {
     }
 }
 
-/// The layer at which a proposal operates.
+/// The layer at which an entry operates.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub enum Layer {
     /// Base-layer protocol change.
@@ -96,7 +121,7 @@ pub enum Layer {
     App,
 }
 
-/// The catalog's normalized proposal category.
+/// The catalog's normalized entry category.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum Category {
@@ -116,7 +141,7 @@ pub enum Category {
     MultiSig,
 }
 
-/// A proposal's normalized status, mapped from each ecosystem's native vocabulary.
+/// An entry's normalized status, mapped from each ecosystem's native vocabulary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum Status {
@@ -136,11 +161,11 @@ pub enum Status {
     Stagnant,
     /// Withdrawn by its authors.
     Withdrawn,
-    /// Replaced by another proposal.
+    /// Replaced by another entry.
     Superseded,
 }
 
-/// A known implementation of a proposal.
+/// A known implementation of an entry.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Implementation {
@@ -157,20 +182,20 @@ pub struct Implementation {
     pub audit_ref: Option<String>,
 }
 
-/// A proposal's relationships to other proposals.
+/// An entry's relationships to other entries.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Relationships {
-    /// Proposals this one supersedes.
+    /// Entries this one supersedes.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub supersedes: Vec<String>,
-    /// Proposals that supersede this one.
+    /// Entries that supersede this one.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub superseded_by: Vec<String>,
-    /// Proposals this one depends on.
+    /// Entries this one depends on.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub depends_on: Vec<String>,
-    /// Proposals in other ecosystems that expose the same primitive.
+    /// Entries in other ecosystems that expose the same primitive.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub equivalent_to: Vec<String>,
 }

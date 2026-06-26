@@ -3,7 +3,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// A cryptographic primitive exposed by a proposal; powers cross-ecosystem grouping.
+/// A cryptographic primitive exposed by a catalog entry; powers cross-ecosystem grouping.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub enum Primitive {
     /// BN254 / alt_bn128 pairing-friendly curve.

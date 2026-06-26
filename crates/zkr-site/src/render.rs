@@ -2,8 +2,8 @@
 //!
 //! The generator reads the catalog through [`zkr_catalog`], renders three kinds
 //! of page with embedded [`minijinja`] templates---a filterable index, one
-//! page per proposal (with prose rendered from Markdown), and the Rosetta
-//! comparison view grouping proposals by shared primitive across ecosystems---
+//! page per entry (with prose rendered from Markdown), and the Rosetta
+//! comparison view grouping entries by shared primitive across ecosystems---
 //! and writes them alongside the static assets under the output directory. All
 //! intra-site links are relative, so the result is servable from any base path.
 
@@ -15,21 +15,21 @@ use std::path::Path;
 use anyhow::Context;
 use minijinja::{AutoEscape, Environment, Error, Output, State, Value, context, escape_formatter};
 use serde::Serialize;
-use zkr_catalog::{Proposal, load_dir};
+use zkr_catalog::{Entry, load_dir};
 use zkr_core::label;
 
 const BASE: &str = include_str!("../templates/base.html");
 const INDEX: &str = include_str!("../templates/index.html");
-const PROPOSAL: &str = include_str!("../templates/proposal.html");
+const ENTRY: &str = include_str!("../templates/entry.html");
 const ROSETTA: &str = include_str!("../templates/rosetta.html");
 const STYLE: &str = include_str!("../assets/style.css");
 const FILTER_JS: &str = include_str!("../assets/filter.js");
 
-/// A proposal enriched with the fields the templates need beyond the raw record.
+/// An entry enriched with the fields the templates need beyond the raw record.
 #[derive(Serialize)]
-struct ProposalView {
+struct EntryView {
     #[serde(flatten)]
-    proposal: Proposal,
+    entry: Entry,
     /// Lowercase id, used as the page filename and slug.
     slug: String,
     /// The `notes` prose rendered from Markdown to HTML.
@@ -44,21 +44,21 @@ struct RosettaGroup<'a> {
     ecosystems: Vec<String>,
     /// Whether the harness proves this cluster's parity executably.
     proven: bool,
-    proposals: Vec<&'a ProposalView>,
+    entries: Vec<&'a EntryView>,
 }
 
 /// Renders the catalog under `data` into a static site at `out`.
 ///
-/// Returns the number of proposals rendered. The output directory is replaced
+/// Returns the number of entries rendered. The output directory is replaced
 /// wholesale so a build never leaves stale pages behind.
 pub fn build(data: &Path, out: &Path) -> anyhow::Result<usize> {
     let views = load_dir(data)
         .with_context(|| format!("loading catalog from {}", data.display()))?
         .into_iter()
-        .map(|entry| ProposalView {
-            slug: entry.value.id.to_ascii_lowercase(),
-            notes_html: markdown(&entry.value.notes),
-            proposal: entry.value,
+        .map(|loaded| EntryView {
+            slug: loaded.value.id.to_ascii_lowercase(),
+            notes_html: markdown(&loaded.value.notes),
+            entry: loaded.value,
         })
         .collect::<Vec<_>>();
 
@@ -67,21 +67,21 @@ pub fn build(data: &Path, out: &Path) -> anyhow::Result<usize> {
     if out.exists() {
         fs::remove_dir_all(out).with_context(|| format!("clearing {}", out.display()))?;
     }
-    let proposals_dir = out.join("proposals");
+    let entries_dir = out.join("entries");
     let assets_dir = out.join("assets");
-    fs::create_dir_all(&proposals_dir)
-        .with_context(|| format!("creating {}", proposals_dir.display()))?;
+    fs::create_dir_all(&entries_dir)
+        .with_context(|| format!("creating {}", entries_dir.display()))?;
     fs::create_dir_all(&assets_dir)
         .with_context(|| format!("creating {}", assets_dir.display()))?;
 
     let index = env.get_template("index.html")?.render(context! {
         root => "",
-        proposals => &views,
-        ecosystems => distinct(&views, |v| Some(label(v.proposal.ecosystem))),
-        layers => distinct(&views, |v| Some(label(v.proposal.layer))),
-        categories => distinct(&views, |v| Some(label(v.proposal.category))),
-        statuses => distinct(&views, |v| Some(label(v.proposal.status))),
-        primitives => distinct(&views, |v| v.proposal.primitive.map(label)),
+        entries => &views,
+        ecosystems => distinct(&views, |v| Some(label(v.entry.ecosystem))),
+        layers => distinct(&views, |v| Some(label(v.entry.layer))),
+        categories => distinct(&views, |v| Some(label(v.entry.category))),
+        statuses => distinct(&views, |v| Some(label(v.entry.status))),
+        primitives => distinct(&views, |v| v.entry.primitive.map(label)),
     })?;
     write(&out.join("index.html"), &index)?;
 
@@ -91,10 +91,10 @@ pub fn build(data: &Path, out: &Path) -> anyhow::Result<usize> {
     })?;
     write(&out.join("rosetta.html"), &rosetta)?;
 
-    let proposal_template = env.get_template("proposal.html")?;
+    let entry_template = env.get_template("entry.html")?;
     views.iter().try_for_each(|view| {
-        let page = proposal_template.render(context! { root => "../", p => view })?;
-        write(&proposals_dir.join(format!("{}.html", view.slug)), &page)
+        let page = entry_template.render(context! { root => "../", p => view })?;
+        write(&entries_dir.join(format!("{}.html", view.slug)), &page)
     })?;
 
     write(&assets_dir.join("style.css"), STYLE)?;
@@ -108,7 +108,7 @@ fn environment() -> anyhow::Result<Environment<'static>> {
     env.set_formatter(escape_href_slashes);
     env.add_template("base.html", BASE)?;
     env.add_template("index.html", INDEX)?;
-    env.add_template("proposal.html", PROPOSAL)?;
+    env.add_template("entry.html", ENTRY)?;
     env.add_template("rosetta.html", ROSETTA)?;
     Ok(env)
 }
@@ -151,12 +151,9 @@ fn markdown(src: &str) -> String {
     html
 }
 
-/// The sorted, de-duplicated labels a projection yields across all proposals,
+/// The sorted, de-duplicated labels a projection yields across all entries,
 /// used to populate the index filter controls with only values in the data.
-fn distinct(
-    views: &[ProposalView],
-    project: impl Fn(&ProposalView) -> Option<String>,
-) -> Vec<String> {
+fn distinct(views: &[EntryView], project: impl Fn(&EntryView) -> Option<String>) -> Vec<String> {
     views
         .iter()
         .filter_map(project)
@@ -165,38 +162,36 @@ fn distinct(
         .collect()
 }
 
-/// Groups proposals by primitive, richest cross-ecosystem groups first.
-fn rosetta_groups(views: &[ProposalView]) -> Vec<RosettaGroup<'_>> {
-    let mut groups: BTreeMap<String, Vec<&ProposalView>> = BTreeMap::new();
+/// Groups entries by primitive, richest cross-ecosystem groups first.
+fn rosetta_groups(views: &[EntryView]) -> Vec<RosettaGroup<'_>> {
+    let mut groups: BTreeMap<String, Vec<&EntryView>> = BTreeMap::new();
     for view in views {
-        if let Some(primitive) = view.proposal.primitive {
+        if let Some(primitive) = view.entry.primitive {
             groups.entry(label(primitive)).or_default().push(view);
         }
     }
 
     let mut groups = groups
         .into_iter()
-        .map(|(primitive, proposals)| {
-            let mut ecosystems = proposals
+        .map(|(primitive, entries)| {
+            let mut ecosystems = entries
                 .iter()
-                .map(|view| label(view.proposal.ecosystem))
+                .map(|view| label(view.entry.ecosystem))
                 .collect::<Vec<_>>();
             ecosystems.dedup();
             ecosystems.sort();
             ecosystems.dedup();
 
-            let parity_curve = proposals
+            let parity_curve = entries
                 .first()
-                .and_then(|view| view.proposal.primitive)
+                .and_then(|view| view.entry.primitive)
                 .is_some_and(|primitive| primitive.parity_provable());
-            let wired = proposals
-                .iter()
-                .any(|view| !view.proposal.proven_by.is_empty());
+            let wired = entries.iter().any(|view| !view.entry.proven_by.is_empty());
             RosettaGroup {
                 primitive,
                 ecosystems,
                 proven: parity_curve && wired,
-                proposals,
+                entries,
             }
         })
         .collect::<Vec<_>>();
@@ -214,7 +209,7 @@ fn rosetta_groups(views: &[ProposalView]) -> Vec<RosettaGroup<'_>> {
 mod tests {
     use std::path::PathBuf;
 
-    use zkr_catalog::{Category, Ecosystem, Layer, Primitive, Relationships, Status};
+    use zkr_catalog::{Category, Ecosystem, Layer, Primitive, Relationships, SourceKind, Status};
 
     use super::*;
 
@@ -280,11 +275,12 @@ equivalent_to = ["EIP-197"]
         (data, base.join("dist"))
     }
 
-    fn sample(id: &str, ecosystem: Ecosystem, primitive: Option<Primitive>) -> Proposal {
-        Proposal {
+    fn sample(id: &str, ecosystem: Ecosystem, primitive: Option<Primitive>) -> Entry {
+        Entry {
             id: id.into(),
             title: id.into(),
             ecosystem,
+            kind: SourceKind::Proposal,
             layer: Layer::L1,
             category: Category::Primitive,
             status: Status::Final,
@@ -301,7 +297,7 @@ equivalent_to = ["EIP-197"]
     }
 
     #[test]
-    fn renders_every_proposal_with_resolvable_links() {
+    fn renders_every_entry_with_resolvable_links() {
         let (data, out) = fixture();
         let count = build(&data, &out).expect("build should succeed");
         assert_eq!(count, 2);
@@ -311,13 +307,13 @@ equivalent_to = ["EIP-197"]
         // Filter controls are populated only from values present in the data.
         assert!(index.contains(">ethereum<") && index.contains(">solana<"));
 
-        // Every proposal the index links to must actually exist on disk.
+        // Every entry the index links to must actually exist on disk.
         for slug in ["eip-197", "simd-0129"] {
             assert!(
-                out.join(format!("proposals/{slug}.html")).exists(),
+                out.join(format!("entries/{slug}.html")).exists(),
                 "missing page for {slug}"
             );
-            assert!(index.contains(&format!("proposals/{slug}.html")));
+            assert!(index.contains(&format!("entries/{slug}.html")));
         }
 
         assert!(out.join("assets/style.css").exists());
@@ -327,15 +323,15 @@ equivalent_to = ["EIP-197"]
     }
 
     #[test]
-    fn proposal_page_renders_markdown_and_relationships() {
+    fn entry_page_renders_markdown_and_relationships() {
         let (data, out) = fixture();
         build(&data, &out).unwrap();
 
-        let page = fs::read_to_string(out.join("proposals/eip-197.html")).unwrap();
+        let page = fs::read_to_string(out.join("entries/eip-197.html")).unwrap();
         // `notes` prose is rendered from Markdown, not emitted verbatim.
         assert!(page.contains("<strong>BN254</strong>"));
-        // The equivalence edge links to the partner proposal's page.
-        assert!(page.contains("proposals/simd-0129.html"));
+        // The equivalence edge links to the partner entry's page.
+        assert!(page.contains("entries/simd-0129.html"));
         assert!(page.contains(r#"href="https://example.com/audit""#));
         assert!(page.contains(">report</a>"));
         assert!(!page.contains("&#x2f;"));
@@ -366,7 +362,7 @@ equivalent_to = ["EIP-197"]
 
         let rosetta = fs::read_to_string(out.join("rosetta.html")).unwrap();
         assert!(rosetta.contains("BN254"));
-        // The group spans both ecosystems and links both proposals.
+        // The group spans both ecosystems and links both entries.
         assert!(rosetta.contains("ethereum") && rosetta.contains("solana"));
         assert!(rosetta.contains("eip-197.html") && rosetta.contains("simd-0129.html"));
         assert!(rosetta.contains("proven parity"));
@@ -376,20 +372,20 @@ equivalent_to = ["EIP-197"]
 
     #[test]
     fn groups_with_more_ecosystems_sort_first() {
-        let shared = ProposalView {
+        let shared = EntryView {
             slug: "a".into(),
             notes_html: String::new(),
-            proposal: sample("A", Ecosystem::Ethereum, Some(Primitive::Bn254)),
+            entry: sample("A", Ecosystem::Ethereum, Some(Primitive::Bn254)),
         };
-        let partner = ProposalView {
+        let partner = EntryView {
             slug: "b".into(),
             notes_html: String::new(),
-            proposal: sample("B", Ecosystem::Solana, Some(Primitive::Bn254)),
+            entry: sample("B", Ecosystem::Solana, Some(Primitive::Bn254)),
         };
-        let lonely = ProposalView {
+        let lonely = EntryView {
             slug: "c".into(),
             notes_html: String::new(),
-            proposal: sample("C", Ecosystem::Ethereum, Some(Primitive::Kzg)),
+            entry: sample("C", Ecosystem::Ethereum, Some(Primitive::Kzg)),
         };
         let views = vec![shared, lonely, partner];
 
@@ -401,10 +397,10 @@ equivalent_to = ["EIP-197"]
 
     #[test]
     fn proven_marks_only_fixed_curve_clusters_with_a_wired_vector() {
-        let view = |proposal: Proposal| ProposalView {
-            slug: proposal.id.to_ascii_lowercase(),
+        let view = |entry: Entry| EntryView {
+            slug: entry.id.to_ascii_lowercase(),
             notes_html: String::new(),
-            proposal,
+            entry,
         };
 
         // A fixed curve with a member wired to a committed vector: proven.
@@ -439,5 +435,35 @@ equivalent_to = ["EIP-197"]
             !proven("Poseidon"),
             "a parameterized primitive is never proven, even with a vector wired"
         );
+    }
+
+    #[test]
+    fn spec_entries_are_labelled_protocol_spec_on_their_page() {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static SEQ: AtomicU64 = AtomicU64::new(0);
+        let base = std::env::temp_dir().join(format!(
+            "zkr-site-kind-{}-{}",
+            std::process::id(),
+            SEQ.fetch_add(1, Ordering::Relaxed)
+        ));
+        let data = base.join("data");
+        fs::create_dir_all(data.join("ethereum")).unwrap();
+        fs::write(
+            data.join("ethereum/ethereum-evm-spec.toml"),
+            "id = \"ethereum-evm-spec\"\ntitle = \"EVM spec\"\necosystem = \"ethereum\"\n\
+             kind = \"spec\"\nlayer = \"L1\"\ncategory = \"primitive\"\nstatus = \"final\"\n\
+             native_status = \"Live\"\nenables = \"x\"\nspec = \"https://example.com\"\n\
+             notes = \"n\"\n",
+        )
+        .unwrap();
+        let out = base.join("dist");
+        build(&data, &out).unwrap();
+
+        let page = fs::read_to_string(out.join("entries/ethereum-evm-spec.html")).unwrap();
+        assert!(
+            page.contains("protocol spec"),
+            "a spec entry must be labelled on its page"
+        );
+        fs::remove_dir_all(&base).ok();
     }
 }

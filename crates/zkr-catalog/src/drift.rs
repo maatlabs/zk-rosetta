@@ -15,7 +15,7 @@ use std::fmt;
 
 use serde::Serialize;
 
-use crate::model::{Ecosystem, Proposal, Status};
+use crate::model::{Ecosystem, Entry, Status};
 
 /// A per-ecosystem locator and parser for upstream proposal documents.
 ///
@@ -28,18 +28,18 @@ pub trait Source {
 
     /// The raw upstream document URL for `proposal`, or `None` when the source
     /// cannot locate it from the catalog entry.
-    fn document_url(&self, proposal: &Proposal) -> Option<String>;
+    fn document_url(&self, proposal: &Entry) -> Option<String>;
 
     /// The canonical spec URL the catalog should record, when the source can
     /// derive it independently of the recorded value; `None` skips spec drift.
-    fn canonical_spec(&self, proposal: &Proposal) -> Option<String>;
+    fn canonical_spec(&self, proposal: &Entry) -> Option<String>;
 
     /// An alternate document URL to try when the primary [`document_url`] is
     /// gone, for ecosystems whose proposals can move between sibling
     /// repositories. The default is `None`: no relocation is possible.
     ///
     /// [`document_url`]: Source::document_url
-    fn sibling_url(&self, _proposal: &Proposal) -> Option<String> {
+    fn sibling_url(&self, _proposal: &Entry) -> Option<String> {
         None
     }
 
@@ -76,7 +76,7 @@ impl Source for EthereumEips {
         Ecosystem::Ethereum
     }
 
-    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+    fn document_url(&self, proposal: &Entry) -> Option<String> {
         let slug = proposal.id.to_ascii_lowercase();
         if slug.starts_with("eip-") {
             Some(format!(
@@ -91,7 +91,7 @@ impl Source for EthereumEips {
         }
     }
 
-    fn canonical_spec(&self, proposal: &Proposal) -> Option<String> {
+    fn canonical_spec(&self, proposal: &Entry) -> Option<String> {
         let slug = proposal.id.to_ascii_lowercase();
         if slug.starts_with("eip-") {
             Some(format!("https://eips.ethereum.org/EIPS/{slug}"))
@@ -102,7 +102,7 @@ impl Source for EthereumEips {
         }
     }
 
-    fn sibling_url(&self, proposal: &Proposal) -> Option<String> {
+    fn sibling_url(&self, proposal: &Entry) -> Option<String> {
         // A reclassification keeps the proposal number but swaps both the
         // EIP/ERC prefix and the repository the document lives in.
         let slug = proposal.id.to_ascii_lowercase();
@@ -135,11 +135,11 @@ impl Source for BitcoinBips {
         Ecosystem::Bitcoin
     }
 
-    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+    fn document_url(&self, proposal: &Entry) -> Option<String> {
         github_raw(&proposal.spec)
     }
 
-    fn canonical_spec(&self, _proposal: &Proposal) -> Option<String> {
+    fn canonical_spec(&self, _proposal: &Entry) -> Option<String> {
         // A BIP's file extension (`.mediawiki` vs `.md`) is not a function of
         // the id, so the blob URL cannot be derived independently of the spec.
         None
@@ -161,11 +161,11 @@ impl Source for SolanaSimds {
         Ecosystem::Solana
     }
 
-    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+    fn document_url(&self, proposal: &Entry) -> Option<String> {
         github_raw(&proposal.spec)
     }
 
-    fn canonical_spec(&self, _proposal: &Proposal) -> Option<String> {
+    fn canonical_spec(&self, _proposal: &Entry) -> Option<String> {
         // A SIMD filename carries an editorial slug (`0129-alt-bn128-...`) that
         // is not a function of the id, so the blob URL is not id-derivable.
         None
@@ -187,13 +187,13 @@ impl Source for ZcashZips {
         Ecosystem::Zcash
     }
 
-    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+    fn document_url(&self, proposal: &Entry) -> Option<String> {
         let slug = proposal.id.to_ascii_lowercase();
         slug.starts_with("zip-")
             .then(|| format!("https://raw.githubusercontent.com/zcash/zips/main/zips/{slug}.rst"))
     }
 
-    fn canonical_spec(&self, proposal: &Proposal) -> Option<String> {
+    fn canonical_spec(&self, proposal: &Entry) -> Option<String> {
         let slug = proposal.id.to_ascii_lowercase();
         slug.starts_with("zip-")
             .then(|| format!("https://zips.z.cash/{slug}"))
@@ -217,11 +217,11 @@ impl Source for FilecoinFips {
         Ecosystem::Filecoin
     }
 
-    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+    fn document_url(&self, proposal: &Entry) -> Option<String> {
         github_raw(&proposal.spec)
     }
 
-    fn canonical_spec(&self, proposal: &Proposal) -> Option<String> {
+    fn canonical_spec(&self, proposal: &Entry) -> Option<String> {
         let slug = proposal.id.to_ascii_lowercase();
         slug.starts_with("fip-")
             .then(|| format!("https://github.com/filecoin-project/FIPs/blob/master/FIPS/{slug}.md"))
@@ -243,11 +243,11 @@ impl Source for StarknetSnips {
         Ecosystem::Starknet
     }
 
-    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+    fn document_url(&self, proposal: &Entry) -> Option<String> {
         github_raw(&proposal.spec)
     }
 
-    fn canonical_spec(&self, proposal: &Proposal) -> Option<String> {
+    fn canonical_spec(&self, proposal: &Entry) -> Option<String> {
         let slug = proposal.id.to_ascii_lowercase();
         slug.starts_with("snip-")
             .then(|| format!("https://github.com/starknet-io/SNIPs/blob/main/SNIPS/{slug}.md"))
@@ -269,11 +269,11 @@ impl Source for MinaMips {
         Ecosystem::Mina
     }
 
-    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+    fn document_url(&self, proposal: &Entry) -> Option<String> {
         github_raw(&proposal.spec)
     }
 
-    fn canonical_spec(&self, _proposal: &Proposal) -> Option<String> {
+    fn canonical_spec(&self, _proposal: &Entry) -> Option<String> {
         // A MIP filename carries an editorial slug (`0003-kimchi`) that is not a
         // function of the id, so the blob URL is not id-derivable.
         None
@@ -442,7 +442,7 @@ pub enum Fetched {
 /// sibling probe, so a flaky upstream cannot masquerade as a relocation.
 pub fn resolve(
     source: &dyn Source,
-    proposal: &Proposal,
+    proposal: &Entry,
     url: &str,
     fetch: impl Fn(&str) -> Fetched,
 ) -> Vec<Finding> {
@@ -472,7 +472,7 @@ pub fn resolve(
 
 /// Compares a proposal against the body fetched from its `document_url`,
 /// returning every divergence (an empty vector when the entry is fresh).
-pub fn compare(source: &dyn Source, proposal: &Proposal, url: &str, body: &str) -> Vec<Finding> {
+pub fn compare(source: &dyn Source, proposal: &Entry, url: &str, body: &str) -> Vec<Finding> {
     let status = match source.parse(body) {
         Ok(up) if up.status != proposal.status => Some(Finding::StatusDrift {
             id: proposal.id.clone(),
@@ -664,7 +664,7 @@ fn normalize_mina(native: &str) -> Option<Status> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::load::parse_proposal;
+    use crate::load::parse_entry;
 
     const EIP_197: &str = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -699,13 +699,13 @@ mod tests {
         "/tests/fixtures/drift/mip-0003.md"
     ));
 
-    fn proposal(id: &str, ecosystem: &str, status: &str, spec: &str) -> Proposal {
+    fn proposal(id: &str, ecosystem: &str, status: &str, spec: &str) -> Entry {
         let toml = format!(
             "id = \"{id}\"\ntitle = \"t\"\necosystem = \"{ecosystem}\"\nlayer = \"L1\"\n\
              category = \"primitive\"\nstatus = \"{status}\"\nnative_status = \"x\"\n\
              enables = \"e\"\nspec = \"{spec}\"\nnotes = \"n\"\n"
         );
-        parse_proposal(&toml).expect("test proposal should parse")
+        parse_entry(&toml).expect("test proposal should parse")
     }
 
     #[test]

@@ -7,7 +7,7 @@
 {% block content %}
     <section class="intro">
       <h1>zk-rosetta</h1>
-      <p class="lede">The same primitive, read across ecosystems. Every entry maps a zero-knowledge protocol proposal to its canonical specification and to audited implementations where they exist.</p>
+      <p class="lede">The same primitive, read across ecosystems. Every entry maps a zero-knowledge protocol to its canonical specification and to audited implementations where they exist.</p>
       <div class="search">
         <pagefind-input></pagefind-input>
         <pagefind-results></pagefind-results>
@@ -50,9 +50,9 @@
         </tr>
       </thead>
       <tbody>
-        {% for p in proposals %}
+        {% for p in entries %}
         <tr data-ecosystem="{{ p.ecosystem }}" data-layer="{{ p.layer }}" data-category="{{ p.category }}" data-status="{{ p.status }}" data-primitive="{{ p.primitive or '' }}">
-          <td><a href="{{ root }}proposals/{{ p.slug }}.html">{{ p.id }}</a></td>
+          <td><a href="{{ root }}entries/{{ p.slug }}.html">{{ p.id }}</a></td>
           <td>{{ p.title }}</td>
           <td><span class="badge eco eco-{{ p.ecosystem }}">{{ p.ecosystem }}</span></td>
           <td>{{ p.layer }}</td>
@@ -64,7 +64,7 @@
         {% endfor %}
       </tbody>
     </table>
-    <p class="count"><span id="visible-count">{{ proposals | length }}</span> of {{ proposals | length }} proposals</p>
+    <p class="count"><span id="visible-count">{{ entries | length }}</span> of {{ entries | length }} entries</p>
 
     <script src="{{ root }}assets/filter.js"></script>
 {% endblock %}

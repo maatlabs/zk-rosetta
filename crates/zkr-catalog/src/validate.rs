@@ -4,8 +4,8 @@ use std::collections::HashMap;
 
 use url::Url;
 
-use crate::load::LoadedProposal;
-use crate::model::{Primitive, Proposal};
+use crate::load::LoadedEntry;
+use crate::model::{Entry, Primitive};
 
 /// A single catalog problem found by [`validate`].
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -43,17 +43,17 @@ pub enum ValidationError {
     /// A relationship references an id that is not in the catalog.
     #[error("`{id}`: {field} references unknown id `{referenced}`")]
     DanglingReference {
-        /// The proposal holding the relationship.
+        /// The entry holding the relationship.
         id: String,
         /// The relationship field.
         field: String,
         /// The referenced id.
         referenced: String,
     },
-    /// A relationship references its own proposal.
+    /// A relationship references its own entry.
     #[error("`{id}`: {field} references itself")]
     SelfReference {
-        /// The proposal holding the relationship.
+        /// The entry holding the relationship.
         id: String,
         /// The relationship field.
         field: String,
@@ -61,7 +61,7 @@ pub enum ValidationError {
     /// A URL is missing or not a well-formed `http`/`https` URL.
     #[error("`{id}`: malformed {field} URL `{value}`")]
     MalformedUrl {
-        /// The proposal holding the URL.
+        /// The entry holding the URL.
         id: String,
         /// The field the URL came from.
         field: String,
@@ -71,38 +71,38 @@ pub enum ValidationError {
     /// `a` declares `b` equivalent but `b` does not declare `a`.
     #[error("equivalence between `{a}` and `{b}` is not symmetric")]
     AsymmetricEquivalence {
-        /// The proposal declaring the equivalence.
+        /// The entry declaring the equivalence.
         a: String,
-        /// The proposal that fails to reciprocate.
+        /// The entry that fails to reciprocate.
         b: String,
     },
     /// A supersession edge is not mirrored by its inverse.
     #[error("supersession of `{superseded}` by `{superseder}` is not mirrored")]
     InconsistentSupersession {
-        /// The superseding proposal.
+        /// The superseding entry.
         superseder: String,
-        /// The superseded proposal.
+        /// The superseded entry.
         superseded: String,
     },
     /// A `proven_by` entry names a vector absent from `vectors/`.
     #[error("`{id}`: proven_by references unknown vector `{vector}`")]
     DanglingVector {
-        /// The proposal holding the reference.
+        /// The entry holding the reference.
         id: String,
         /// The referenced vector name.
         vector: String,
     },
-    /// A `proven_by` vector exercises a different primitive than the proposal.
+    /// A `proven_by` vector exercises a different primitive than the entry.
     #[error(
-        "`{id}`: proven_by vector `{vector}` exercises {vector_primitive} but the proposal's primitive is {proposal_primitive}"
+        "`{id}`: proven_by vector `{vector}` exercises {vector_primitive} but the entry's primitive is {entry_primitive}"
     )]
     VectorPrimitiveMismatch {
-        /// The proposal holding the reference.
+        /// The entry holding the reference.
         id: String,
         /// The referenced vector name.
         vector: String,
-        /// The proposal's declared primitive, or `unset` when absent.
-        proposal_primitive: String,
+        /// The entry's declared primitive, or `unset` when absent.
+        entry_primitive: String,
         /// The primitive the referenced vector exercises.
         vector_primitive: String,
     },
@@ -115,13 +115,13 @@ pub enum ValidationError {
 /// vector exercises; it is the authority every `proven_by` reference is checked
 /// against. An empty result means the catalog is valid.
 pub fn validate(
-    loaded: &[LoadedProposal],
+    loaded: &[LoadedEntry],
     vectors: &HashMap<String, Primitive>,
 ) -> Vec<ValidationError> {
     let index = loaded
         .iter()
         .map(|entry| (entry.value.id.as_str(), &entry.value))
-        .collect::<HashMap<&str, &Proposal>>();
+        .collect::<HashMap<&str, &Entry>>();
 
     duplicate_ids(loaded)
         .into_iter()
@@ -149,7 +149,7 @@ pub fn validate(
         .collect()
 }
 
-fn duplicate_ids(loaded: &[LoadedProposal]) -> Vec<ValidationError> {
+fn duplicate_ids(loaded: &[LoadedEntry]) -> Vec<ValidationError> {
     let mut by_id: HashMap<&str, Vec<String>> = HashMap::new();
     for entry in loaded {
         by_id
@@ -170,13 +170,13 @@ fn duplicate_ids(loaded: &[LoadedProposal]) -> Vec<ValidationError> {
         .collect()
 }
 
-fn path_consistency(entry: &LoadedProposal) -> Vec<ValidationError> {
-    let proposal = &entry.value;
-    let path = entry.path.display().to_string();
+fn path_consistency(loaded: &LoadedEntry) -> Vec<ValidationError> {
+    let entry = &loaded.value;
+    let path = loaded.path.display().to_string();
     let mut errors = Vec::new();
 
-    let expected_stem = proposal.id.to_ascii_lowercase();
-    let stem = entry
+    let expected_stem = entry.id.to_ascii_lowercase();
+    let stem = loaded
         .path
         .file_stem()
         .and_then(|s| s.to_str())
@@ -184,22 +184,22 @@ fn path_consistency(entry: &LoadedProposal) -> Vec<ValidationError> {
     if stem != expected_stem {
         errors.push(ValidationError::FilenameMismatch {
             path: path.clone(),
-            id: proposal.id.clone(),
+            id: entry.id.clone(),
             expected: expected_stem,
         });
     }
 
-    let found = entry
+    let found = loaded
         .path
         .parent()
         .and_then(|p| p.file_name())
         .and_then(|s| s.to_str())
         .unwrap_or_default();
-    let expected = proposal.ecosystem.dir();
+    let expected = entry.ecosystem.dir();
     if found != expected {
         errors.push(ValidationError::EcosystemDirMismatch {
             path,
-            id: proposal.id.clone(),
+            id: entry.id.clone(),
             found: found.to_string(),
             expected: expected.to_string(),
         });
@@ -208,16 +208,16 @@ fn path_consistency(entry: &LoadedProposal) -> Vec<ValidationError> {
     errors
 }
 
-fn url_wellformedness(proposal: &Proposal) -> Vec<ValidationError> {
-    let mut fields: Vec<(String, &str)> = vec![("spec".to_string(), proposal.spec.as_str())];
+fn url_wellformedness(entry: &Entry) -> Vec<ValidationError> {
+    let mut fields: Vec<(String, &str)> = vec![("spec".to_string(), entry.spec.as_str())];
     fields.extend(
-        proposal
+        entry
             .sources
             .iter()
             .enumerate()
             .map(|(i, source)| (format!("sources[{i}]"), source.as_str())),
     );
-    for (i, implementation) in proposal.implementations.iter().enumerate() {
+    for (i, implementation) in entry.implementations.iter().enumerate() {
         fields.push((
             format!("implementations[{i}].url"),
             implementation.url.as_str(),
@@ -231,7 +231,7 @@ fn url_wellformedness(proposal: &Proposal) -> Vec<ValidationError> {
         .into_iter()
         .filter(|(_, value)| !is_http_url(value))
         .map(|(field, value)| ValidationError::MalformedUrl {
-            id: proposal.id.clone(),
+            id: entry.id.clone(),
             field,
             value: value.to_string(),
         })
@@ -244,11 +244,8 @@ fn is_http_url(value: &str) -> bool {
         .unwrap_or(false)
 }
 
-fn referential_integrity(
-    proposal: &Proposal,
-    index: &HashMap<&str, &Proposal>,
-) -> Vec<ValidationError> {
-    let relationships = &proposal.relationships;
+fn referential_integrity(entry: &Entry, index: &HashMap<&str, &Entry>) -> Vec<ValidationError> {
+    let relationships = &entry.relationships;
     [
         ("supersedes", &relationships.supersedes),
         ("superseded_by", &relationships.superseded_by),
@@ -258,14 +255,14 @@ fn referential_integrity(
     .into_iter()
     .flat_map(|(field, ids)| {
         ids.iter().filter_map(move |referenced| {
-            if referenced == &proposal.id {
+            if referenced == &entry.id {
                 Some(ValidationError::SelfReference {
-                    id: proposal.id.clone(),
+                    id: entry.id.clone(),
                     field: field.to_string(),
                 })
             } else if !index.contains_key(referenced.as_str()) {
                 Some(ValidationError::DanglingReference {
-                    id: proposal.id.clone(),
+                    id: entry.id.clone(),
                     field: field.to_string(),
                     referenced: referenced.clone(),
                 })
@@ -277,16 +274,16 @@ fn referential_integrity(
     .collect()
 }
 
-fn edge_symmetry(proposal: &Proposal, index: &HashMap<&str, &Proposal>) -> Vec<ValidationError> {
-    let relationships = &proposal.relationships;
+fn edge_symmetry(entry: &Entry, index: &HashMap<&str, &Entry>) -> Vec<ValidationError> {
+    let relationships = &entry.relationships;
     let mut errors = Vec::new();
 
     for other_id in &relationships.equivalent_to {
         if let Some(other) = index.get(other_id.as_str())
-            && !other.relationships.equivalent_to.contains(&proposal.id)
+            && !other.relationships.equivalent_to.contains(&entry.id)
         {
             errors.push(ValidationError::AsymmetricEquivalence {
-                a: proposal.id.clone(),
+                a: entry.id.clone(),
                 b: other_id.clone(),
             });
         }
@@ -294,21 +291,21 @@ fn edge_symmetry(proposal: &Proposal, index: &HashMap<&str, &Proposal>) -> Vec<V
 
     for other_id in &relationships.superseded_by {
         if let Some(other) = index.get(other_id.as_str())
-            && !other.relationships.supersedes.contains(&proposal.id)
+            && !other.relationships.supersedes.contains(&entry.id)
         {
             errors.push(ValidationError::InconsistentSupersession {
                 superseder: other_id.clone(),
-                superseded: proposal.id.clone(),
+                superseded: entry.id.clone(),
             });
         }
     }
 
     for other_id in &relationships.supersedes {
         if let Some(other) = index.get(other_id.as_str())
-            && !other.relationships.superseded_by.contains(&proposal.id)
+            && !other.relationships.superseded_by.contains(&entry.id)
         {
             errors.push(ValidationError::InconsistentSupersession {
-                superseder: proposal.id.clone(),
+                superseder: entry.id.clone(),
                 superseded: other_id.clone(),
             });
         }
@@ -318,22 +315,22 @@ fn edge_symmetry(proposal: &Proposal, index: &HashMap<&str, &Proposal>) -> Vec<V
 }
 
 fn proven_by_integrity(
-    proposal: &Proposal,
+    entry: &Entry,
     vectors: &HashMap<String, Primitive>,
 ) -> Vec<ValidationError> {
-    proposal
+    entry
         .proven_by
         .iter()
         .filter_map(|vector| match vectors.get(vector) {
             None => Some(ValidationError::DanglingVector {
-                id: proposal.id.clone(),
+                id: entry.id.clone(),
                 vector: vector.clone(),
             }),
-            Some(found) if Some(*found) != proposal.primitive => {
+            Some(found) if Some(*found) != entry.primitive => {
                 Some(ValidationError::VectorPrimitiveMismatch {
-                    id: proposal.id.clone(),
+                    id: entry.id.clone(),
                     vector: vector.clone(),
-                    proposal_primitive: proposal
+                    entry_primitive: entry
                         .primitive
                         .map(zkr_core::label)
                         .unwrap_or_else(|| "unset".to_string()),
@@ -348,13 +345,14 @@ fn proven_by_integrity(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::{Category, Ecosystem, Layer, Relationships, Status};
+    use crate::model::{Category, Ecosystem, Layer, Relationships, SourceKind, Status};
 
-    fn proposal(id: &str) -> Proposal {
-        Proposal {
+    fn entry(id: &str) -> Entry {
+        Entry {
             id: id.to_string(),
             title: "Title".to_string(),
             ecosystem: Ecosystem::Ethereum,
+            kind: SourceKind::Proposal,
             layer: Layer::L1,
             category: Category::Primitive,
             status: Status::Final,
@@ -370,11 +368,11 @@ mod tests {
         }
     }
 
-    fn loaded(proposal: Proposal) -> LoadedProposal {
-        let path = format!("data/ethereum/{}.toml", proposal.id.to_ascii_lowercase());
-        LoadedProposal {
+    fn loaded(entry: Entry) -> LoadedEntry {
+        let path = format!("data/ethereum/{}.toml", entry.id.to_ascii_lowercase());
+        LoadedEntry {
             path: path.into(),
-            value: proposal,
+            value: entry,
         }
     }
 
@@ -387,8 +385,8 @@ mod tests {
 
     #[test]
     fn accepts_a_consistent_catalog() {
-        let mut a = proposal("EIP-1");
-        let mut b = proposal("EIP-2");
+        let mut a = entry("EIP-1");
+        let mut b = entry("EIP-2");
         a.relationships.equivalent_to = vec!["EIP-2".to_string()];
         b.relationships.equivalent_to = vec!["EIP-1".to_string()];
         let errors = validate(&[loaded(a), loaded(b)], &vectors(&[]));
@@ -398,7 +396,7 @@ mod tests {
     #[test]
     fn detects_duplicate_ids() {
         let errors = validate(
-            &[loaded(proposal("EIP-1")), loaded(proposal("EIP-1"))],
+            &[loaded(entry("EIP-1")), loaded(entry("EIP-1"))],
             &vectors(&[]),
         );
         assert!(
@@ -410,7 +408,7 @@ mod tests {
 
     #[test]
     fn detects_dangling_reference() {
-        let mut a = proposal("EIP-1");
+        let mut a = entry("EIP-1");
         a.relationships.depends_on = vec!["EIP-999".to_string()];
         let errors = validate(&[loaded(a)], &vectors(&[]));
         assert!(errors.contains(&ValidationError::DanglingReference {
@@ -422,7 +420,7 @@ mod tests {
 
     #[test]
     fn detects_self_reference() {
-        let mut a = proposal("EIP-1");
+        let mut a = entry("EIP-1");
         a.relationships.depends_on = vec!["EIP-1".to_string()];
         let errors = validate(&[loaded(a)], &vectors(&[]));
         assert!(errors.contains(&ValidationError::SelfReference {
@@ -433,8 +431,8 @@ mod tests {
 
     #[test]
     fn detects_asymmetric_equivalence() {
-        let mut a = proposal("EIP-1");
-        let b = proposal("EIP-2");
+        let mut a = entry("EIP-1");
+        let b = entry("EIP-2");
         a.relationships.equivalent_to = vec!["EIP-2".to_string()];
         let errors = validate(&[loaded(a), loaded(b)], &vectors(&[]));
         assert!(errors.contains(&ValidationError::AsymmetricEquivalence {
@@ -445,8 +443,8 @@ mod tests {
 
     #[test]
     fn detects_inconsistent_supersession() {
-        let mut a = proposal("EIP-1");
-        let b = proposal("EIP-2");
+        let mut a = entry("EIP-1");
+        let b = entry("EIP-2");
         a.relationships.superseded_by = vec!["EIP-2".to_string()];
         let errors = validate(&[loaded(a), loaded(b)], &vectors(&[]));
         assert!(errors.contains(&ValidationError::InconsistentSupersession {
@@ -457,7 +455,7 @@ mod tests {
 
     #[test]
     fn detects_malformed_url() {
-        let mut a = proposal("EIP-1");
+        let mut a = entry("EIP-1");
         a.spec = "not-a-url".to_string();
         let errors = validate(&[loaded(a)], &vectors(&[]));
         assert!(
@@ -469,9 +467,9 @@ mod tests {
 
     #[test]
     fn detects_filename_mismatch() {
-        let wrong = LoadedProposal {
+        let wrong = LoadedEntry {
             path: "data/ethereum/wrong.toml".into(),
-            value: proposal("EIP-1"),
+            value: entry("EIP-1"),
         };
         let errors = validate(&[wrong], &vectors(&[]));
         assert!(
@@ -483,7 +481,7 @@ mod tests {
 
     #[test]
     fn detects_dangling_vector_reference() {
-        let mut a = proposal("EIP-1");
+        let mut a = entry("EIP-1");
         a.primitive = Some(Primitive::Bn254);
         a.proven_by = vec!["no-such-vector".to_string()];
         let errors = validate(&[loaded(a)], &vectors(&[("real-vector", Primitive::Bn254)]));
@@ -495,7 +493,7 @@ mod tests {
 
     #[test]
     fn detects_vector_primitive_mismatch() {
-        let mut a = proposal("EIP-1");
+        let mut a = entry("EIP-1");
         a.primitive = Some(Primitive::Bn254);
         a.proven_by = vec!["bls-vector".to_string()];
         let errors = validate(
@@ -505,14 +503,14 @@ mod tests {
         assert!(errors.contains(&ValidationError::VectorPrimitiveMismatch {
             id: "EIP-1".to_string(),
             vector: "bls-vector".to_string(),
-            proposal_primitive: "BN254".to_string(),
+            entry_primitive: "BN254".to_string(),
             vector_primitive: "BLS12-381".to_string(),
         }));
     }
 
     #[test]
     fn accepts_a_proven_by_reference_with_matching_primitive() {
-        let mut a = proposal("EIP-1");
+        let mut a = entry("EIP-1");
         a.primitive = Some(Primitive::Bn254);
         a.proven_by = vec!["bn254-vector".to_string()];
         let errors = validate(
