@@ -13,4 +13,12 @@ proven_by = ["bn254-groth16-multiplier"]
 
 [relationships]
 depends_on = ["EIP-196"]
-equivalent_to = ["SIMD-0129", "aztec-honk"]
+equivalent_to = [
+    "SIMD-0129",
+    "aztec-honk",
+    "zksync-boojum",
+    "scroll-halo2",
+    "polygon-zkevm",
+    "linea-plonk",
+    "taiko-zkvm",
+]

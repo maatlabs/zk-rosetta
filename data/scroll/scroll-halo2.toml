@@ -1,0 +1,21 @@
+id = "scroll-halo2"
+title = "Scroll's Halo2 zkEVM proof system"
+ecosystem = "scroll"
+kind = "spec"
+layer = "L2"
+category = "proof-system"
+status = "final"
+native_status = "Mainnet"
+primitive = "BN254"
+enables = "A bytecode-compatible zkEVM proved with Halo2 and KZG commitments over BN254"
+spec = "https://docs.scroll.io/en/technology/zkevm/zkevm-overview/"
+notes = "Scroll is a bytecode-compatible zkEVM rollup whose circuits use Halo2, modified to use KZG polynomial commitments in place of Halo2's original inner-product argument, over the BN254 (alt_bn128) curve. The resulting SNARK is verified on Ethereum through the EIP-197 pairing precompile. BN254 is the cross-ecosystem hook: the same pairing curve Ethereum (EIP-196/EIP-197), Solana (SIMD-0129), and Aztec expose, here as the curve underlying Scroll's Halo2-KZG verifier."
+
+[[implementations]]
+name = "zkevm-circuits"
+language = "rust"
+url = "https://github.com/scroll-tech/zkevm-circuits"
+audited = false
+
+[relationships]
+equivalent_to = ["EIP-197"]

@@ -1,0 +1,22 @@
+id = "linea-plonk"
+title = "Linea's PLONK zkEVM proof system"
+ecosystem = "linea"
+kind = "spec"
+layer = "L2"
+category = "proof-system"
+status = "final"
+native_status = "Mainnet"
+primitive = "BN254"
+enables = "A recursive prover compressing zkEVM execution into a BN254 PLONK proof"
+spec = "https://docs.linea.build/"
+notes = "Linea is a zkEVM rollup whose prover stack (Vortex, a FRI/lattice-based inner argument, compressed through Arcane) aggregates execution proofs and finally compresses them into a single PLONK proof over the BN254 (alt_bn128) curve, built with Consensys's gnark library and verified on Ethereum through the EIP-197 pairing precompile. BN254 is the cross-ecosystem hook: the same pairing curve Ethereum (EIP-196/EIP-197), Solana (SIMD-0129), and Aztec expose, here as the curve underlying Linea's final PLONK verifier."
+
+[[implementations]]
+name = "linea-monorepo"
+language = "go"
+url = "https://github.com/Consensys/linea-monorepo"
+audited = true
+audit_ref = "https://www.openzeppelin.com/news/linea-verifier-audit-1"
+
+[relationships]
+equivalent_to = ["EIP-197"]

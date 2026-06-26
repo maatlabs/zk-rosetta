@@ -100,6 +100,18 @@ pub enum Ecosystem {
     Penumbra,
     /// Namada and its zero-knowledge stack (MASP).
     Namada,
+    /// ZKsync Era and its zkEVM stack (Boojum).
+    Zksync,
+    /// Scroll and its zkEVM stack (Halo2).
+    Scroll,
+    /// Polygon zkEVM and its prover stack (Plonky2).
+    Polygon,
+    /// Linea and its zkEVM stack (gnark).
+    Linea,
+    /// Taiko and its zkVM-based proving stack.
+    Taiko,
+    /// Cross-rollup standards (Rollup Improvement Proposals).
+    Rollup,
 }
 
 impl Ecosystem {
@@ -118,6 +130,12 @@ impl Ecosystem {
             Self::Midnight => "midnight",
             Self::Penumbra => "penumbra",
             Self::Namada => "namada",
+            Self::Zksync => "zksync",
+            Self::Scroll => "scroll",
+            Self::Polygon => "polygon",
+            Self::Linea => "linea",
+            Self::Taiko => "taiko",
+            Self::Rollup => "rollup",
         }
     }
 }

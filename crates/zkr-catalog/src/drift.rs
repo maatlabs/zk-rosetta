@@ -287,6 +287,37 @@ impl Source for MinaMips {
     }
 }
 
+/// Rollup Improvement Proposals (RIPs), the cross-rollup standards track in
+/// `ethereum/RIPs`. Filenames are id-derivable (`rip-7212.md`), so both URLs
+/// follow from the id without consulting the recorded spec.
+struct RollupRips;
+
+impl Source for RollupRips {
+    fn ecosystem(&self) -> Ecosystem {
+        Ecosystem::Rollup
+    }
+
+    fn document_url(&self, proposal: &Entry) -> Option<String> {
+        let slug = proposal.id.to_ascii_lowercase();
+        slug.starts_with("rip-").then(|| {
+            format!("https://raw.githubusercontent.com/ethereum/RIPs/master/RIPS/{slug}.md")
+        })
+    }
+
+    fn canonical_spec(&self, proposal: &Entry) -> Option<String> {
+        let slug = proposal.id.to_ascii_lowercase();
+        slug.starts_with("rip-")
+            .then(|| format!("https://github.com/ethereum/RIPs/blob/master/RIPS/{slug}.md"))
+    }
+
+    fn parse(&self, body: &str) -> Result<Upstream, ParseError> {
+        let native = front_matter_value(body, "status").ok_or(ParseError::NoStatusField)?;
+        let status =
+            normalize_rip(&native).ok_or_else(|| ParseError::UnknownStatus(native.clone()))?;
+        Ok(Upstream { native, status })
+    }
+}
+
 /// A single freshness divergence between the catalog and an upstream source.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
@@ -508,6 +539,7 @@ pub fn sources() -> Vec<Box<dyn Source>> {
         Box::new(FilecoinFips),
         Box::new(StarknetSnips),
         Box::new(MinaMips),
+        Box::new(RollupRips),
     ]
 }
 
@@ -661,6 +693,19 @@ fn normalize_mina(native: &str) -> Option<Status> {
     })
 }
 
+/// Maps a RIP native status onto the normalized scale. RIPs follow the EIP
+/// Standards-Track vocabulary.
+fn normalize_rip(native: &str) -> Option<Status> {
+    Some(match native.to_ascii_lowercase().as_str() {
+        "draft" => Status::Draft,
+        "review" | "last call" => Status::Review,
+        "final" | "living" => Status::Final,
+        "stagnant" => Status::Stagnant,
+        "withdrawn" => Status::Withdrawn,
+        _ => return None,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -697,6 +742,10 @@ mod tests {
     const MIP_0003: &str = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/fixtures/drift/mip-0003.md"
+    ));
+    const RIP_7212: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/drift/rip-7212.md"
     ));
 
     fn proposal(id: &str, ecosystem: &str, status: &str, spec: &str) -> Entry {
@@ -769,6 +818,31 @@ mod tests {
     }
 
     #[test]
+    fn parses_rip_status_from_real_front_matter() {
+        let up = RollupRips.parse(RIP_7212).expect("rip fixture parses");
+        assert_eq!(up.native, "Final");
+        assert_eq!(up.status, Status::Final);
+    }
+
+    #[test]
+    fn rip_derives_raw_and_canonical_urls_from_the_id() {
+        let rip = proposal(
+            "RIP-7212",
+            "rollup",
+            "final",
+            "https://github.com/ethereum/RIPs/blob/master/RIPS/rip-7212.md",
+        );
+        assert_eq!(
+            RollupRips.document_url(&rip).as_deref(),
+            Some("https://raw.githubusercontent.com/ethereum/RIPs/master/RIPS/rip-7212.md")
+        );
+        assert_eq!(
+            RollupRips.canonical_spec(&rip).as_deref(),
+            Some("https://github.com/ethereum/RIPs/blob/master/RIPS/rip-7212.md")
+        );
+    }
+
+    #[test]
     fn zcash_derives_raw_and_canonical_urls_from_the_padded_id() {
         let zip = proposal("ZIP-0224", "zcash", "final", "https://zips.z.cash/zip-0224");
         assert_eq!(
@@ -803,6 +877,9 @@ mod tests {
         assert_eq!(normalize_mina("Finalization"), Some(Status::Final));
         assert_eq!(normalize_mina("Inactive"), Some(Status::Stagnant));
         assert_eq!(normalize_mina("Frozen"), None);
+        assert_eq!(normalize_rip("Final"), Some(Status::Final));
+        assert_eq!(normalize_rip("Last Call"), Some(Status::Review));
+        assert_eq!(normalize_rip("Moved"), None);
     }
 
     #[test]
@@ -1029,6 +1106,10 @@ mod tests {
         assert_eq!(
             source_for(&sources, Ecosystem::Mina).map(Source::ecosystem),
             Some(Ecosystem::Mina)
+        );
+        assert_eq!(
+            source_for(&sources, Ecosystem::Rollup).map(Source::ecosystem),
+            Some(Ecosystem::Rollup)
         );
     }
 
