@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-06-27
+
+Broadens coverage from six ecosystems to eighteen. The Rosetta view now distinguishes harness-proven parity from conceptual equivalence, a second curve (BLS12-381) joins the parity harness alongside BN254, the catalog links each demonstrated equivalence to the committed vector that proves it, and coverage expands across the major ZK-native layer-one chains and zkEVM rollups.
+
+### Added
+
+- Catalog entries can now link a cross-ecosystem equivalence to the committed test vector that proves it, via a `proven_by` field naming a directory under `vectors/`. `zkr validate` checks every such reference, rejecting one that names a missing vector or a vector whose primitive does not match the entry, so the catalog cannot claim a parity no committed vector backs.
+- The Rosetta comparison view now marks each primitive as proven parity or conceptual equivalence: a primitive earns the proven-parity badge only when it is a fixed, parity-able curve and a committed vector drives audited verifiers on each ecosystem to the same verdict. A short legend explains the distinction, so the site never implies a parity that the underlying math cannot back.
+- `zkr vectors validate` checks every committed parity test vector for structural well-formedness, reporting any problem against its file path in a stable order and exiting non-zero on failure, so contributors can run the same guard locally that CI enforces.
+- The parity harness now spans a second curve, BLS12-381. A committed BLS signature vector is verified identically by Ethereum's EIP-2537 pairing precompile (in `revm`) and Filecoin's audited `bls-signatures`, demonstrating the same relation on the same bytes across two ecosystems; the Rosetta view marks the BLS12-381 cluster as proven parity. The Solana side (the `SIMD-0388` BLS syscalls) is recorded as a gap until those syscalls activate. The test-vector format now carries either a Groth16 SNARK statement or a BLS signature statement, generalizing it beyond its original Groth16-only shape.
+- `zkr drift` now recognizes when an Ethereum proposal has moved between the EIP and ERC repositories, reporting the relocation and its new location instead of a dead link.
+- Catalog coverage for Mina, the first ZK-native L1 of this release's coverage wave: its Kimchi proof system (MIP-0003), mapped to its canonical specification and joined to the cross-ecosystem Poseidon cluster alongside Zcash, Filecoin, and Starknet. `zkr drift` now tracks Mina MIPs against their upstream repository.
+- Catalog coverage for five more ZK-native chains, each catalogued as a protocol-spec entry mapped to its canonical specification: Aleo (the Varuna proof system) and Penumbra (Groth16 shielded transactions over decaf377) join the cross-ecosystem Poseidon cluster; Aztec (the UltraHonk proof system) joins the BN254 cluster; Namada (the Sapling-derived Multi-Asset Shielded Pool) joins the BLS12-381 cluster; and Midnight (a Halo2 system built on KZG commitments) pairs with Ethereum's EIP-4844 to form the catalog's first cross-ecosystem KZG link. Together with Mina, this completes the release's coverage of ZK-native layer-one chains.
+- Catalog coverage for the major zkEVM rollups and the cross-rollup standards track: zkSync Era (Boojum), Scroll (Halo2), Polygon zkEVM (Plonky2), Linea (gnark PLONK), and Taiko (zkVM-based) each join the BN254 cluster, because however different their provers, all compress their validity proofs into a BN254 SNARK that Ethereum's EIP-197 pairing precompile verifies on L1. The first Rollup Improvement Proposal, RIP-7212 (the secp256r1 precompile), is catalogued with its supersession by EIP-7951 recorded, and `zkr drift` now tracks RIPs against their upstream repository.
+- Catalog entries now declare a `kind`: a numbered improvement `proposal` (the default, freshness-tracked by `zkr drift`) or a protocol-`spec` section (identified by a stable slug, its reachability covered by `validate --online` rather than drift). This lets ZK-native chains that specify their cryptography in a protocol specification, rather than a numbered improvement proposal, be catalogued faithfully. Existing entries deserialize unchanged; the derived JSON Schema gains the `kind` field and its root type is now `Entry` (renamed from `Proposal`), and a spec entry is labelled as such on its catalog page.
+
+### Changed
+
+- `zkr drift` now also verifies the specification URL of Filecoin (FIP) and Starknet (SNIP) entries against their canonical form, broadening specification-drift coverage to four ecosystems alongside Ethereum and Zcash.
+- `zkr validate --online` resolves catalogued links in parallel, cutting a full online check from over a minute to a few seconds, with identical, order-stable output.
+- The published site builds its search index from a pinned, checksum-verified Pagefind binary, so the deployment is reproducible rather than tracking the latest released tool.
+- Generated site links render as clean URLs, with path separators no longer HTML-entity-encoded; rendered behavior is unchanged.
+
 ## [0.3.0] - 2026-06-25
 
 Freshness automation and coverage for ZK-native chains: zk-rosetta now checks itself against the upstream proposal repositories and extends past the Ethereum/Bitcoin/Solana seed into three ZK-native ecosystems (Zcash, Filecoin, StarkNet).
@@ -56,6 +79,7 @@ When adding entries to this changelog for future releases:
 3. **Audience**: Write for users, not developers (focus on impact, not implementation)
 4. **Links**: Add comparison links at the bottom, e.g.: `[0.4.0]: https://github.com/maatlabs/zk-rosetta/compare/v0.3.0...v0.4.0`
 
+[0.4.0]: https://github.com/maatlabs/zk-rosetta/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/maatlabs/zk-rosetta/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/maatlabs/zk-rosetta/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/maatlabs/zk-rosetta/releases/tag/v0.1.0
