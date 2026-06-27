@@ -1,0 +1,21 @@
+id = "RIP-7212"
+title = "Precompile for secp256r1 Curve Support"
+ecosystem = "rollup"
+layer = "L2"
+category = "primitive"
+status = "final"
+native_status = "Final"
+primitive = "secp256r1"
+enables = "secp256r1 signature verification on rollups"
+spec = "https://github.com/ethereum/RIPs/blob/master/RIPS/rip-7212.md"
+notes = "The first Rollup Improvement Proposal, RIP-7212 specifies a precompile that verifies secp256r1 (NIST P-256) signatures, letting rollups check signatures from hardware enclaves and WebAuthn/passkey signers cheaply on-chain. It was adopted across many Layer 2s before being standardized at L1 by EIP-7951, which keeps the same interface while fixing a missing point-at-infinity check and a modular-comparison bug. The shared primitive is secp256r1, the same curve Ethereum (EIP-7951) and Solana (SIMD-0075) expose."
+
+[[implementations]]
+name = "p256-verifier"
+language = "solidity"
+url = "https://github.com/daimo-eth/p256-verifier"
+audited = true
+audit_ref = "https://github.com/daimo-eth/p256-verifier/tree/master/audits"
+
+[relationships]
+superseded_by = ["EIP-7951"]

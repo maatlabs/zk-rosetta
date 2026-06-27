@@ -29,4 +29,10 @@ audited = true
 audit_ref = "https://research.nccgroup.com/wp-content/uploads/2021/11/NCC_Group_Zcash_NU5_PublicReportFinal.pdf"
 
 [relationships]
-equivalent_to = ["FIP-0092", "SNIP-12"]
+equivalent_to = [
+    "FIP-0092",
+    "SNIP-12",
+    "MIP-0003",
+    "aleo-varuna",
+    "penumbra-groth16",
+]

@@ -15,7 +15,7 @@ use std::fmt;
 
 use serde::Serialize;
 
-use crate::model::{Ecosystem, Proposal, Status};
+use crate::model::{Ecosystem, Entry, Status};
 
 /// A per-ecosystem locator and parser for upstream proposal documents.
 ///
@@ -28,11 +28,20 @@ pub trait Source {
 
     /// The raw upstream document URL for `proposal`, or `None` when the source
     /// cannot locate it from the catalog entry.
-    fn document_url(&self, proposal: &Proposal) -> Option<String>;
+    fn document_url(&self, proposal: &Entry) -> Option<String>;
 
     /// The canonical spec URL the catalog should record, when the source can
     /// derive it independently of the recorded value; `None` skips spec drift.
-    fn canonical_spec(&self, proposal: &Proposal) -> Option<String>;
+    fn canonical_spec(&self, proposal: &Entry) -> Option<String>;
+
+    /// An alternate document URL to try when the primary [`document_url`] is
+    /// gone, for ecosystems whose proposals can move between sibling
+    /// repositories. The default is `None`: no relocation is possible.
+    ///
+    /// [`document_url`]: Source::document_url
+    fn sibling_url(&self, _proposal: &Entry) -> Option<String> {
+        None
+    }
 
     /// Reads and normalizes the upstream status from a fetched document body.
     fn parse(&self, body: &str) -> Result<Upstream, ParseError>;
@@ -67,7 +76,7 @@ impl Source for EthereumEips {
         Ecosystem::Ethereum
     }
 
-    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+    fn document_url(&self, proposal: &Entry) -> Option<String> {
         let slug = proposal.id.to_ascii_lowercase();
         if slug.starts_with("eip-") {
             Some(format!(
@@ -82,7 +91,7 @@ impl Source for EthereumEips {
         }
     }
 
-    fn canonical_spec(&self, proposal: &Proposal) -> Option<String> {
+    fn canonical_spec(&self, proposal: &Entry) -> Option<String> {
         let slug = proposal.id.to_ascii_lowercase();
         if slug.starts_with("eip-") {
             Some(format!("https://eips.ethereum.org/EIPS/{slug}"))
@@ -90,6 +99,23 @@ impl Source for EthereumEips {
             Some(format!("https://ercs.ethereum.org/ERCS/{slug}"))
         } else {
             None
+        }
+    }
+
+    fn sibling_url(&self, proposal: &Entry) -> Option<String> {
+        // A reclassification keeps the proposal number but swaps both the
+        // EIP/ERC prefix and the repository the document lives in.
+        let slug = proposal.id.to_ascii_lowercase();
+        if let Some(number) = slug.strip_prefix("eip-") {
+            Some(format!(
+                "https://raw.githubusercontent.com/ethereum/ERCs/master/ERCS/erc-{number}.md"
+            ))
+        } else {
+            slug.strip_prefix("erc-").map(|number| {
+                format!(
+                    "https://raw.githubusercontent.com/ethereum/EIPs/master/EIPS/eip-{number}.md"
+                )
+            })
         }
     }
 
@@ -109,11 +135,13 @@ impl Source for BitcoinBips {
         Ecosystem::Bitcoin
     }
 
-    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+    fn document_url(&self, proposal: &Entry) -> Option<String> {
         github_raw(&proposal.spec)
     }
 
-    fn canonical_spec(&self, _proposal: &Proposal) -> Option<String> {
+    fn canonical_spec(&self, _proposal: &Entry) -> Option<String> {
+        // A BIP's file extension (`.mediawiki` vs `.md`) is not a function of
+        // the id, so the blob URL cannot be derived independently of the spec.
         None
     }
 
@@ -133,11 +161,13 @@ impl Source for SolanaSimds {
         Ecosystem::Solana
     }
 
-    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+    fn document_url(&self, proposal: &Entry) -> Option<String> {
         github_raw(&proposal.spec)
     }
 
-    fn canonical_spec(&self, _proposal: &Proposal) -> Option<String> {
+    fn canonical_spec(&self, _proposal: &Entry) -> Option<String> {
+        // A SIMD filename carries an editorial slug (`0129-alt-bn128-...`) that
+        // is not a function of the id, so the blob URL is not id-derivable.
         None
     }
 
@@ -157,13 +187,13 @@ impl Source for ZcashZips {
         Ecosystem::Zcash
     }
 
-    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+    fn document_url(&self, proposal: &Entry) -> Option<String> {
         let slug = proposal.id.to_ascii_lowercase();
         slug.starts_with("zip-")
             .then(|| format!("https://raw.githubusercontent.com/zcash/zips/main/zips/{slug}.rst"))
     }
 
-    fn canonical_spec(&self, proposal: &Proposal) -> Option<String> {
+    fn canonical_spec(&self, proposal: &Entry) -> Option<String> {
         let slug = proposal.id.to_ascii_lowercase();
         slug.starts_with("zip-")
             .then(|| format!("https://zips.z.cash/{slug}"))
@@ -187,12 +217,14 @@ impl Source for FilecoinFips {
         Ecosystem::Filecoin
     }
 
-    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+    fn document_url(&self, proposal: &Entry) -> Option<String> {
         github_raw(&proposal.spec)
     }
 
-    fn canonical_spec(&self, _proposal: &Proposal) -> Option<String> {
-        None
+    fn canonical_spec(&self, proposal: &Entry) -> Option<String> {
+        let slug = proposal.id.to_ascii_lowercase();
+        slug.starts_with("fip-")
+            .then(|| format!("https://github.com/filecoin-project/FIPs/blob/master/FIPS/{slug}.md"))
     }
 
     fn parse(&self, body: &str) -> Result<Upstream, ParseError> {
@@ -211,18 +243,77 @@ impl Source for StarknetSnips {
         Ecosystem::Starknet
     }
 
-    fn document_url(&self, proposal: &Proposal) -> Option<String> {
+    fn document_url(&self, proposal: &Entry) -> Option<String> {
         github_raw(&proposal.spec)
     }
 
-    fn canonical_spec(&self, _proposal: &Proposal) -> Option<String> {
-        None
+    fn canonical_spec(&self, proposal: &Entry) -> Option<String> {
+        let slug = proposal.id.to_ascii_lowercase();
+        slug.starts_with("snip-")
+            .then(|| format!("https://github.com/starknet-io/SNIPs/blob/main/SNIPS/{slug}.md"))
     }
 
     fn parse(&self, body: &str) -> Result<Upstream, ParseError> {
         let native = front_matter_value(body, "status").ok_or(ParseError::NoStatusField)?;
         let status =
             normalize_snip(&native).ok_or_else(|| ParseError::UnknownStatus(native.clone()))?;
+        Ok(Upstream { native, status })
+    }
+}
+
+/// Mina MIPs, located from the GitHub blob URL recorded as the spec.
+struct MinaMips;
+
+impl Source for MinaMips {
+    fn ecosystem(&self) -> Ecosystem {
+        Ecosystem::Mina
+    }
+
+    fn document_url(&self, proposal: &Entry) -> Option<String> {
+        github_raw(&proposal.spec)
+    }
+
+    fn canonical_spec(&self, _proposal: &Entry) -> Option<String> {
+        // A MIP filename carries an editorial slug (`0003-kimchi`) that is not a
+        // function of the id, so the blob URL is not id-derivable.
+        None
+    }
+
+    fn parse(&self, body: &str) -> Result<Upstream, ParseError> {
+        let native = front_matter_value(body, "status").ok_or(ParseError::NoStatusField)?;
+        let status =
+            normalize_mina(&native).ok_or_else(|| ParseError::UnknownStatus(native.clone()))?;
+        Ok(Upstream { native, status })
+    }
+}
+
+/// Rollup Improvement Proposals (RIPs), the cross-rollup standards track in
+/// `ethereum/RIPs`. Filenames are id-derivable (`rip-7212.md`), so both URLs
+/// follow from the id without consulting the recorded spec.
+struct RollupRips;
+
+impl Source for RollupRips {
+    fn ecosystem(&self) -> Ecosystem {
+        Ecosystem::Rollup
+    }
+
+    fn document_url(&self, proposal: &Entry) -> Option<String> {
+        let slug = proposal.id.to_ascii_lowercase();
+        slug.starts_with("rip-").then(|| {
+            format!("https://raw.githubusercontent.com/ethereum/RIPs/master/RIPS/{slug}.md")
+        })
+    }
+
+    fn canonical_spec(&self, proposal: &Entry) -> Option<String> {
+        let slug = proposal.id.to_ascii_lowercase();
+        slug.starts_with("rip-")
+            .then(|| format!("https://github.com/ethereum/RIPs/blob/master/RIPS/{slug}.md"))
+    }
+
+    fn parse(&self, body: &str) -> Result<Upstream, ParseError> {
+        let native = front_matter_value(body, "status").ok_or(ParseError::NoStatusField)?;
+        let status =
+            normalize_rip(&native).ok_or_else(|| ParseError::UnknownStatus(native.clone()))?;
         Ok(Upstream { native, status })
     }
 }
@@ -269,6 +360,16 @@ pub enum Finding {
         /// The transport or status error reported by the fetcher.
         error: String,
     },
+    /// The document was gone from its expected repository but present in a
+    /// sibling one, signalling an upstream reclassification (EIP <-> ERC).
+    Reclassified {
+        /// The proposal identifier.
+        id: String,
+        /// The document URL the catalog's id implies, now a 404.
+        expected: String,
+        /// The sibling document URL where the proposal now lives.
+        found: String,
+    },
     /// The source covers the ecosystem but could not locate the document.
     NoLocator {
         /// The proposal identifier.
@@ -293,6 +394,7 @@ impl Finding {
                 | Self::SpecDrift { .. }
                 | Self::Unparsable { .. }
                 | Self::Unreachable { .. }
+                | Self::Reclassified { .. }
         )
     }
 }
@@ -328,6 +430,11 @@ impl fmt::Display for Finding {
             Self::Unreachable { id, url, error } => {
                 write!(f, "drift {id}: upstream unreachable {url}: {error}")
             }
+            Self::Reclassified {
+                id,
+                expected,
+                found,
+            } => write!(f, "drift {id}: reclassified, {expected} now at {found}"),
             Self::NoLocator { id } => write!(f, "note {id}: no upstream document locator"),
             Self::NoSource { id, ecosystem } => {
                 write!(
@@ -340,9 +447,63 @@ impl fmt::Display for Finding {
     }
 }
 
+/// The outcome of fetching an upstream document URL, as seen by [`resolve`].
+///
+/// A definitive 404 ([`Fetched::NotFound`]) is distinguished from a transport
+/// or non-404 status error ([`Fetched::Error`]) because only the former is a
+/// clean "the document moved" signal worth chasing into a sibling repository.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Fetched {
+    /// The document was retrieved.
+    Body(String),
+    /// The location returned a definitive HTTP 404.
+    NotFound,
+    /// The fetch failed for a transport or non-404 status reason.
+    Error(String),
+}
+
+/// Resolves a proposal against its upstream source, retrieving documents through
+/// `fetch`.
+///
+/// A present document is compared as usual via [`compare`]. A 404 at the
+/// expected location is retried against the source's [`Source::sibling_url`],
+/// and a hit there is reported as a [`Finding::Reclassified`] rather than a dead
+/// link; anything else (no sibling, the sibling also missing, or a transient
+/// error) stays a [`Finding::Unreachable`]. A non-404 error never triggers a
+/// sibling probe, so a flaky upstream cannot masquerade as a relocation.
+pub fn resolve(
+    source: &dyn Source,
+    proposal: &Entry,
+    url: &str,
+    fetch: impl Fn(&str) -> Fetched,
+) -> Vec<Finding> {
+    match fetch(url) {
+        Fetched::Body(body) => compare(source, proposal, url, &body),
+        Fetched::NotFound => match source.sibling_url(proposal) {
+            Some(sibling) if matches!(fetch(&sibling), Fetched::Body(_)) => {
+                vec![Finding::Reclassified {
+                    id: proposal.id.clone(),
+                    expected: url.to_string(),
+                    found: sibling,
+                }]
+            }
+            _ => vec![Finding::Unreachable {
+                id: proposal.id.clone(),
+                url: url.to_string(),
+                error: "not found (HTTP 404)".to_string(),
+            }],
+        },
+        Fetched::Error(error) => vec![Finding::Unreachable {
+            id: proposal.id.clone(),
+            url: url.to_string(),
+            error,
+        }],
+    }
+}
+
 /// Compares a proposal against the body fetched from its `document_url`,
 /// returning every divergence (an empty vector when the entry is fresh).
-pub fn compare(source: &dyn Source, proposal: &Proposal, url: &str, body: &str) -> Vec<Finding> {
+pub fn compare(source: &dyn Source, proposal: &Entry, url: &str, body: &str) -> Vec<Finding> {
     let status = match source.parse(body) {
         Ok(up) if up.status != proposal.status => Some(Finding::StatusDrift {
             id: proposal.id.clone(),
@@ -377,6 +538,8 @@ pub fn sources() -> Vec<Box<dyn Source>> {
         Box::new(ZcashZips),
         Box::new(FilecoinFips),
         Box::new(StarknetSnips),
+        Box::new(MinaMips),
+        Box::new(RollupRips),
     ]
 }
 
@@ -513,10 +676,40 @@ fn normalize_snip(native: &str) -> Option<Status> {
     })
 }
 
+/// Maps a Mina MIP native status onto the normalized scale.
+fn normalize_mina(native: &str) -> Option<Status> {
+    Some(match native.to_ascii_lowercase().as_str() {
+        "idea" => Status::Idea,
+        "draft" => Status::Draft,
+        "review" | "last call" => Status::Review,
+        // Mina labels a shipped MIP with several spellings of one terminal state
+        // (`Finalisation`, `Finalization`, `Finallize`), all denoting a proposal
+        // that completed the process and is live on the network.
+        "finalisation" | "finalization" | "finallize" | "finalize" | "final" => Status::Final,
+        // `Inactive` marks a MIP that stalled before shipping.
+        "inactive" | "stagnant" => Status::Stagnant,
+        "withdrawn" => Status::Withdrawn,
+        _ => return None,
+    })
+}
+
+/// Maps a RIP native status onto the normalized scale. RIPs follow the EIP
+/// Standards-Track vocabulary.
+fn normalize_rip(native: &str) -> Option<Status> {
+    Some(match native.to_ascii_lowercase().as_str() {
+        "draft" => Status::Draft,
+        "review" | "last call" => Status::Review,
+        "final" | "living" => Status::Final,
+        "stagnant" => Status::Stagnant,
+        "withdrawn" => Status::Withdrawn,
+        _ => return None,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::load::parse_proposal;
+    use crate::load::parse_entry;
 
     const EIP_197: &str = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -546,14 +739,22 @@ mod tests {
         env!("CARGO_MANIFEST_DIR"),
         "/tests/fixtures/drift/snip-12.md"
     ));
+    const MIP_0003: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/drift/mip-0003.md"
+    ));
+    const RIP_7212: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/drift/rip-7212.md"
+    ));
 
-    fn proposal(id: &str, ecosystem: &str, status: &str, spec: &str) -> Proposal {
+    fn proposal(id: &str, ecosystem: &str, status: &str, spec: &str) -> Entry {
         let toml = format!(
             "id = \"{id}\"\ntitle = \"t\"\necosystem = \"{ecosystem}\"\nlayer = \"L1\"\n\
              category = \"primitive\"\nstatus = \"{status}\"\nnative_status = \"x\"\n\
              enables = \"e\"\nspec = \"{spec}\"\nnotes = \"n\"\n"
         );
-        parse_proposal(&toml).expect("test proposal should parse")
+        parse_entry(&toml).expect("test proposal should parse")
     }
 
     #[test]
@@ -608,6 +809,40 @@ mod tests {
     }
 
     #[test]
+    fn parses_mina_status_from_real_front_matter() {
+        // Kimchi shipped, but Mina records that terminal state as `Finalisation`;
+        // the mapping must fold it to `final` so the live MIP shows no drift.
+        let up = MinaMips.parse(MIP_0003).expect("mip fixture parses");
+        assert_eq!(up.native, "Finalisation");
+        assert_eq!(up.status, Status::Final);
+    }
+
+    #[test]
+    fn parses_rip_status_from_real_front_matter() {
+        let up = RollupRips.parse(RIP_7212).expect("rip fixture parses");
+        assert_eq!(up.native, "Final");
+        assert_eq!(up.status, Status::Final);
+    }
+
+    #[test]
+    fn rip_derives_raw_and_canonical_urls_from_the_id() {
+        let rip = proposal(
+            "RIP-7212",
+            "rollup",
+            "final",
+            "https://github.com/ethereum/RIPs/blob/master/RIPS/rip-7212.md",
+        );
+        assert_eq!(
+            RollupRips.document_url(&rip).as_deref(),
+            Some("https://raw.githubusercontent.com/ethereum/RIPs/master/RIPS/rip-7212.md")
+        );
+        assert_eq!(
+            RollupRips.canonical_spec(&rip).as_deref(),
+            Some("https://github.com/ethereum/RIPs/blob/master/RIPS/rip-7212.md")
+        );
+    }
+
+    #[test]
     fn zcash_derives_raw_and_canonical_urls_from_the_padded_id() {
         let zip = proposal("ZIP-0224", "zcash", "final", "https://zips.z.cash/zip-0224");
         assert_eq!(
@@ -638,6 +873,13 @@ mod tests {
         assert_eq!(normalize_snip("Living"), Some(Status::Final));
         assert_eq!(normalize_snip("Idea"), Some(Status::Idea));
         assert_eq!(normalize_snip("Last Call"), Some(Status::Review));
+        assert_eq!(normalize_mina("Finalisation"), Some(Status::Final));
+        assert_eq!(normalize_mina("Finalization"), Some(Status::Final));
+        assert_eq!(normalize_mina("Inactive"), Some(Status::Stagnant));
+        assert_eq!(normalize_mina("Frozen"), None);
+        assert_eq!(normalize_rip("Final"), Some(Status::Final));
+        assert_eq!(normalize_rip("Last Call"), Some(Status::Review));
+        assert_eq!(normalize_rip("Moved"), None);
     }
 
     #[test]
@@ -746,6 +988,99 @@ mod tests {
     }
 
     #[test]
+    fn resolve_compares_a_present_document() {
+        // The Body branch must delegate to `compare`: a fetched `Final` against
+        // a recorded `draft` is status drift, not silently dropped.
+        let p = proposal(
+            "EIP-197",
+            "ethereum",
+            "draft",
+            "https://eips.ethereum.org/EIPS/eip-197",
+        );
+        let findings = resolve(&EthereumEips, &p, "url", |_| {
+            Fetched::Body(EIP_197.to_string())
+        });
+        assert_eq!(
+            findings,
+            vec![Finding::StatusDrift {
+                id: "EIP-197".into(),
+                catalog: Status::Draft,
+                upstream: Status::Final,
+                native: "Final".into(),
+            }]
+        );
+    }
+
+    #[test]
+    fn resolve_reports_reclassification_when_the_document_moved_to_the_sibling_repo() {
+        let erc = proposal("ERC-7812", "ethereum", "review", "https://x");
+        let expected = "https://raw.githubusercontent.com/ethereum/ERCs/master/ERCS/erc-7812.md";
+        let sibling = "https://raw.githubusercontent.com/ethereum/EIPs/master/EIPS/eip-7812.md";
+        // The expected location is gone; only the EIPs sibling serves the body,
+        // so the finding doubles as a check that `sibling_url` points there.
+        let findings = resolve(&EthereumEips, &erc, expected, |url| {
+            if url == sibling {
+                Fetched::Body(ERC_7812.to_string())
+            } else {
+                Fetched::NotFound
+            }
+        });
+        assert_eq!(
+            findings,
+            vec![Finding::Reclassified {
+                id: "ERC-7812".into(),
+                expected: expected.into(),
+                found: sibling.into(),
+            }]
+        );
+    }
+
+    #[test]
+    fn resolve_keeps_unreachable_when_neither_repository_has_the_document() {
+        let erc = proposal("ERC-7812", "ethereum", "review", "https://x");
+        let expected = "https://raw.githubusercontent.com/ethereum/ERCs/master/ERCS/erc-7812.md";
+        let findings = resolve(&EthereumEips, &erc, expected, |_| Fetched::NotFound);
+        assert_eq!(
+            findings,
+            vec![Finding::Unreachable {
+                id: "ERC-7812".into(),
+                url: expected.into(),
+                error: "not found (HTTP 404)".into(),
+            }]
+        );
+    }
+
+    #[test]
+    fn resolve_does_not_probe_the_sibling_on_a_transient_error() {
+        // A 500 or timeout is not a clean relocation signal, so resolve must
+        // surface it as-is and never reach for the sibling repository.
+        use std::cell::Cell;
+        let erc = proposal("ERC-7812", "ethereum", "review", "https://x");
+        let expected = "https://raw.githubusercontent.com/ethereum/ERCs/master/ERCS/erc-7812.md";
+        let probed_sibling = Cell::new(false);
+        let findings = resolve(&EthereumEips, &erc, expected, |url| {
+            if url == expected {
+                Fetched::Error("http status: 500".into())
+            } else {
+                probed_sibling.set(true);
+                Fetched::Body(String::new())
+            }
+        });
+        assert!(
+            !probed_sibling.get(),
+            "a transient error must not trigger a sibling probe"
+        );
+        assert_eq!(
+            findings,
+            vec![Finding::Unreachable {
+                id: "ERC-7812".into(),
+                url: expected.into(),
+                error: "http status: 500".into(),
+            }]
+        );
+    }
+
+    #[test]
     fn source_for_selects_by_ecosystem() {
         let sources = sources();
         assert_eq!(
@@ -767,6 +1102,14 @@ mod tests {
         assert_eq!(
             source_for(&sources, Ecosystem::Starknet).map(Source::ecosystem),
             Some(Ecosystem::Starknet)
+        );
+        assert_eq!(
+            source_for(&sources, Ecosystem::Mina).map(Source::ecosystem),
+            Some(Ecosystem::Mina)
+        );
+        assert_eq!(
+            source_for(&sources, Ecosystem::Rollup).map(Source::ecosystem),
+            Some(Ecosystem::Rollup)
         );
     }
 

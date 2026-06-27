@@ -9,6 +9,7 @@ primitive = "BN254"
 enables = "Groth16 verify + Poseidon"
 spec = "https://github.com/solana-foundation/solana-improvement-documents/blob/main/proposals/0129-alt-bn128-simplified-error-code.md"
 notes = "Simplifies the error code for the family of BN254 syscalls (sol_alt_bn128_group_op, sol_alt_bn128_compression, and sol_poseidon), reducing the risk of consensus failure from divergent error codes across validators; these syscalls collectively enable on-chain Groth16 verification and ZK Compression."
+proven_by = ["bn254-groth16-multiplier"]
 
 [[implementations]]
 name = "groth16-solana"
@@ -18,4 +19,4 @@ audited = true
 audit_ref = "https://github.com/Lightprotocol/light-protocol/tree/main/audits"
 
 [relationships]
-equivalent_to = ["EIP-196", "EIP-197"]
+equivalent_to = ["EIP-196", "EIP-197", "aztec-honk"]

@@ -1,0 +1,21 @@
+id = "polygon-zkevm"
+title = "Polygon zkEVM proof system"
+ecosystem = "polygon"
+kind = "spec"
+layer = "L2"
+category = "proof-system"
+status = "final"
+native_status = "Mainnet"
+primitive = "BN254"
+enables = "A Plonky2 zkEVM prover wrapped in a BN254 SNARK for on-chain verification"
+spec = "https://docs.polygon.technology/zkEVM/architecture/zkprover/"
+notes = "Polygon zkEVM proves EVM execution with a multi-stage zkProver: STARK proofs built with Plonky2 over the Goldilocks field recursively aggregate the execution trace, and a final Fflonk/PLONK SNARK over the BN254 (alt_bn128) curve wraps the result for cheap on-chain verification through the EIP-197 pairing precompile. BN254 is the cross-ecosystem hook: the same pairing curve Ethereum (EIP-196/EIP-197), Solana (SIMD-0129), and Aztec expose, reached here through a STARK-to-SNARK wrap."
+
+[[implementations]]
+name = "zkevm-prover"
+language = "cpp"
+url = "https://github.com/0xPolygonHermez/zkevm-prover"
+audited = false
+
+[relationships]
+equivalent_to = ["EIP-197"]

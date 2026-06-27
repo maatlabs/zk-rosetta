@@ -10,6 +10,7 @@ enables = "On-chain BLS aggregate signatures"
 spec = "https://github.com/filecoin-project/FIPs/blob/master/FIPS/fip-0079.md"
 notes = "Adds a Filecoin VM syscall for verifying BLS12-381 aggregate signatures, letting on-chain actors check one aggregated signature over many messages rather than verifying each individually. BLS12-381 is the same pairing-friendly curve behind Filecoin's block signatures, its drand randomness beacon, and its Groth16 storage proofs."
 sources = ["https://spec.filecoin.io/"]
+proven_by = ["bls12-381-bls-signature"]
 
 [[implementations]]
 name = "bls-signatures"
@@ -25,4 +26,4 @@ url = "https://github.com/filecoin-project/blstrs"
 audited = false
 
 [relationships]
-equivalent_to = ["EIP-2537", "SIMD-0388"]
+equivalent_to = ["EIP-2537", "SIMD-0388", "namada-masp"]

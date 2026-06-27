@@ -18,4 +18,5 @@ audited = true
 audit_ref = "https://reports.zksecurity.xyz/reports/near-p256/"
 
 [relationships]
+supersedes = ["RIP-7212"]
 equivalent_to = ["SIMD-0048", "SIMD-0075"]

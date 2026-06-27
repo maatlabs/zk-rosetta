@@ -11,4 +11,4 @@ spec = "https://github.com/solana-foundation/solana-improvement-documents/blob/m
 notes = "BLS12-381 syscalls enabling Groth16 verification on BLS12-381 and BLS proof-of-possession signature verification at a 128-bit security level; also required for Alpenglow consensus (SIMD-0326)."
 
 [relationships]
-equivalent_to = ["EIP-2537", "FIP-0079"]
+equivalent_to = ["EIP-2537", "FIP-0079", "namada-masp"]

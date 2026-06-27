@@ -1,0 +1,21 @@
+id = "taiko-zkvm"
+title = "Taiko's zkVM-based validity proofs"
+ecosystem = "taiko"
+kind = "spec"
+layer = "L2"
+category = "proof-system"
+status = "final"
+native_status = "Mainnet"
+primitive = "BN254"
+enables = "zkVM block proofs compressed into a BN254 Groth16 proof for on-chain verification"
+spec = "https://docs.taiko.xyz/"
+notes = "Taiko is a based rollup whose validity-proof path proves block execution inside general-purpose zkVMs (Succinct's SP1 and RISC Zero), each of which proves a RISC-V trace with STARKs and then compresses the result into a Groth16 SNARK over the BN254 (alt_bn128) curve for single-transaction verification on Ethereum through the EIP-197 pairing precompile. BN254 is the cross-ecosystem hook: the same pairing curve Ethereum (EIP-196/EIP-197), Solana (SIMD-0129), and Aztec expose, reached here through a zkVM-to-SNARK wrap."
+
+[[implementations]]
+name = "raiko"
+language = "rust"
+url = "https://github.com/taikoxyz/raiko"
+audited = false
+
+[relationships]
+equivalent_to = ["EIP-197"]

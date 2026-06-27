@@ -1,0 +1,26 @@
+id = "penumbra-groth16"
+title = "Groth16 over decaf377, Penumbra's shielded proofs"
+ecosystem = "penumbra"
+kind = "spec"
+layer = "L1"
+category = "privacy"
+status = "final"
+native_status = "Mainnet"
+primitive = "Poseidon"
+enables = "Shielded transactions proved with Groth16 over BLS12-377, using the decaf377 group and poseidon377 hashing"
+spec = "https://protocol.penumbra.zone/main/crypto/proofs.html"
+notes = "Penumbra is a shielded Cosmos chain whose private transactions are proved with Groth16 (via arkworks) over the pairing-friendly BLS12-377 curve. It builds on decaf377, a prime-order group obtained by applying the Decaf construction to a twisted Edwards curve over the BLS12-377 scalar field, and hashes with poseidon377, an instantiation of Poseidon over decaf377. BLS12-377, rather than BLS12-381, was chosen to leave room for future depth-1 proof recursion. The cross-ecosystem hook is Poseidon, instantiated here over the BLS12-377 scalar field: the same hash family that Zcash, Filecoin, Starknet, Mina, and Aleo expose over their respective fields, a conceptual equivalence the parity harness cannot run rather than one shared function."
+sources = [
+    "https://protocol.penumbra.zone/main/crypto/poseidon.html",
+    "https://github.com/penumbra-zone/penumbra",
+]
+
+[[implementations]]
+name = "decaf377"
+language = "rust"
+url = "https://github.com/penumbra-zone/decaf377"
+audited = true
+audit_ref = "https://www.nccgroup.com/research-blog/public-report-penumbra-labs-decaf377-implementation-and-poseidon-parameter-selection-review/"
+
+[relationships]
+equivalent_to = ["ZIP-0224", "FIP-0092", "SNIP-12", "MIP-0003", "aleo-varuna"]

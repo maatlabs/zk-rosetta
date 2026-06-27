@@ -1,0 +1,25 @@
+id = "midnight-halo2"
+title = "Halo2 with KZG, Midnight's proof system"
+ecosystem = "midnight"
+kind = "spec"
+layer = "L1"
+category = "proof-system"
+status = "final"
+native_status = "Federated mainnet"
+primitive = "KZG"
+enables = "Halo2 PLONKish proofs with KZG polynomial commitments for Midnight's shielded smart contracts"
+spec = "https://docs.rs/midnight-proofs"
+notes = "Midnight is a privacy-focused chain whose proving system, midnight-proofs, is a fork of the Privacy and Scaling Explorations Halo2 (itself descended from Zcash's Sapling prover). It uses the PLONKish (UltraPLONK) arithmetization with KZG polynomial commitments over BN254, giving the contracts written in Midnight's Compact language succinct proofs of private state transitions. The cross-ecosystem hook is the KZG polynomial-commitment scheme that Ethereum exposes for blob commitments (EIP-4844); the two are the same scheme bound to different setups --- Midnight over BN254, EIP-4844 over BLS12-381 --- so they are conceptually equivalent yet, like every trusted-setup-bound construction, not something the parity harness can run over shared bytes."
+sources = [
+    "https://www.iog.io/news/unlocking-zero-knowledge-proofs-for-cardano-the-halo2-plutus-verifier",
+    "https://github.com/privacy-scaling-explorations/halo2",
+]
+
+[[implementations]]
+name = "midnight-proofs"
+language = "rust"
+url = "https://lib.rs/crates/midnight-proofs"
+audited = false
+
+[relationships]
+equivalent_to = ["EIP-4844"]

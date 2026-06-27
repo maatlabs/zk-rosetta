@@ -1,6 +1,6 @@
 [package]
 name = "zkr-catalog"
-description = "Data model, loader, and validator for the zk-rosetta cross-ecosystem proposal catalog."
+description = "Data model, loader, and validator for the zk-rosetta cross-ecosystem catalog."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -12,15 +12,16 @@ members = [
 exclude = ["programs/zkr-svm-program"]
 
 [workspace.package]
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/maatlabs/zk-rosetta"
 homepage = "https://github.com/maatlabs/zk-rosetta"
 
 [workspace.dependencies]
-zkr-core = { path = "crates/zkr-core", version = "0.3.0" }
-zkr-catalog = { path = "crates/zkr-catalog", version = "0.3.0" }
+zkr-core = { path = "crates/zkr-core", version = "0.4.0" }
+zkr-catalog = { path = "crates/zkr-catalog", version = "0.4.0" }
+zkr-harness = { path = "crates/zkr-harness", version = "0.4.0" }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -31,6 +32,7 @@ url = "2.5"
 hex = "0.4"
 clap = { version = "4", features = ["derive"] }
 ureq = "3"
+rayon = "1"
 anyhow = "1"
 minijinja = "2"
 pulldown-cmark = { version = "0.13", default-features = false, features = [
@@ -54,5 +56,14 @@ ark-ff = "0.6"
 
 # EVM parity adapter: run an audited Groth16 BN254 verifier (a committed,
 # compiled fixture) in the revm in-process EVM, exercising the real EIP-196 and
-# EIP-197 alt_bn128 precompiles.
+# EIP-197 alt_bn128 precompiles. revm 33 also exposes the EIP-2537 BLS12-381
+# precompiles under the Prague spec, used by the BLS signature parity adapter.
 revm = "33"
+
+# Filecoin parity adapter: drive the audited bls-signatures BLS12-381 verifier
+# over the shared vector, selecting the blst/blstrs backend Filecoin runs in
+# production; blstrs supplies the audited point parsing the adapter marshals into.
+bls-signatures = { version = "0.15", default-features = false, features = [
+    "blst",
+] }
+blstrs = "0.7"

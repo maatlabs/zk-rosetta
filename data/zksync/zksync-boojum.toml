@@ -1,0 +1,22 @@
+id = "zksync-boojum"
+title = "Boojum, ZKsync Era's proof system"
+ecosystem = "zksync"
+kind = "spec"
+layer = "L2"
+category = "proof-system"
+status = "final"
+native_status = "Mainnet"
+primitive = "BN254"
+enables = "A FRI-based zkEVM prover wrapped in a BN254 SNARK for on-chain verification"
+spec = "https://docs.zksync.io/zksync-protocol/era-vm/circuits"
+notes = "ZKsync Era is a zkEVM rollup on Ethereum whose prover, Boojum, recursively proves EraVM execution with a transparent, FRI-based STARK (an implementation of the Redshift protocol: a PLONK IOP over a List-Polynomial-Commitment scheme built on FRI). Because a FRI proof is expensive to verify on-chain, the final proof is wrapped in a PLONK/Fflonk SNARK over the BN254 (alt_bn128) curve, which Ethereum verifies through the EIP-197 pairing precompile. BN254 is the cross-ecosystem hook here: the same pairing curve that settles SNARK verification on Ethereum (EIP-196/EIP-197), Solana (SIMD-0129), and Aztec, reached through a STARK-to-SNARK wrap rather than a native pairing precompile."
+
+[[implementations]]
+name = "era-boojum"
+language = "rust"
+url = "https://github.com/matter-labs/era-boojum"
+audited = true
+audit_ref = "https://docs.zksync.io/zksync-protocol/security/audits"
+
+[relationships]
+equivalent_to = ["EIP-197"]

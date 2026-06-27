@@ -26,6 +26,11 @@ solana-transaction-error = { workspace = true, optional = true }
 ark-bn254 = { workspace = true, optional = true }
 ark-ff = { workspace = true, optional = true }
 revm = { workspace = true, optional = true }
+bls-signatures = { workspace = true, optional = true }
+blstrs = { workspace = true, optional = true }
+
+[dev-dependencies]
+zkr-catalog.workspace = true
 
 [features]
 # Each parity adapter and its heavy ecosystem dependencies are opt-in, so the
@@ -43,3 +48,4 @@ svm = [
     "dep:ark-ff",
 ]
 evm = ["dep:revm"]
+filecoin = ["dep:bls-signatures", "dep:blstrs"]

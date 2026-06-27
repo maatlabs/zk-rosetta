@@ -4,18 +4,19 @@
     <section class="intro">
       <h1>Rosetta view</h1>
       <p class="lede">One cryptographic primitive surfaces differently in each ecosystem. Grouped here by primitive, the same object is shown across chains alongside the implementations catalogued for each, with audited ones marked. Groups spanning the most ecosystems lead.</p>
+      <p class="legend"><span class="badge proven">proven parity</span> marks a primitive whose equivalence is demonstrated executably: a committed test vector drives audited verifiers on each ecosystem to the same verdict on the same bytes. Unmarked groups are conceptual equivalences&mdash;the same primitive by name, but instantiated differently per chain or bound to a per-deployment setup, so they are not claimed to verify identically.</p>
     </section>
 
     {% for group in groups %}
     <section class="rosetta-group">
       <header>
-        <h2>{{ group.primitive }}</h2>
+        <h2>{{ group.primitive }}{% if group.proven %} <span class="badge proven" title="Demonstrated by a committed parity vector across ecosystems">proven parity</span>{% endif %}</h2>
         <p class="ecosystem-tags">{% for eco in group.ecosystems %}<span class="badge eco eco-{{ eco }}">{{ eco }}</span>{% endfor %}</p>
       </header>
       <div class="rosetta-cards">
-        {% for p in group.proposals %}
+        {% for p in group.entries %}
         <article class="card">
-          <h3><a href="{{ root }}proposals/{{ p.slug }}.html">{{ p.id }}</a></h3>
+          <h3><a href="{{ root }}entries/{{ p.slug }}.html">{{ p.id }}</a></h3>
           <span class="badge eco eco-{{ p.ecosystem }}">{{ p.ecosystem }}</span>
           <p class="card-title">{{ p.title }}</p>
           {% if p.implementations %}

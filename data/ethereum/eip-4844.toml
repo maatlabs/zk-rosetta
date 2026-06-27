@@ -16,3 +16,6 @@ language = "c"
 url = "https://github.com/ethereum/c-kzg-4844"
 audited = true
 audit_ref = "https://github.com/ethereum/c-kzg-4844/blob/main/audits/2023_sigp.pdf"
+
+[relationships]
+equivalent_to = ["midnight-halo2"]

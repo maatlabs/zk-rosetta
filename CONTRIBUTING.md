@@ -17,18 +17,18 @@ When filing an issue, please check [existing open](https://github.com/maatlabs/z
 
 ## Adding or Correcting a Catalog Entry
 
-The catalog is the heart of this project, so entries are the most common contribution. Each proposal is a single TOML file under `data/<ecosystem>/<id>.toml`, deserialized into the `Proposal` type in `crates/zkr-catalog`; that Rust type is the schema, and the validator is the gate every entry must pass. To add or change one:
+The catalog is the heart of this project, so entries are the most common contribution. Each entry is a single TOML file under `data/<ecosystem>/<id>.toml`, deserialized into the `Entry` type in `crates/zkr-catalog`; that Rust type is the schema, and the validator is the gate every entry must pass. An entry maps either a numbered improvement proposal (`kind = "proposal"`, the default) or a section of a chain's protocol specification (`kind = "spec"`) to its canonical specification and the audited implementations that realize it. To add or change one:
 
-1. Add or edit the relevant `data/<ecosystem>/<id>.toml` file. The filename stem must match the proposal `id` (lowercased), and the file must live under the directory for its `ecosystem`. Record the normalized `status` on the shared scale alongside the verbatim `native_status`, the `category` and `primitive`, the canonical `spec` URL, and the `sources` you read; cross-ecosystem `equivalent_to` edges and supersession links must be added on both endpoints.
+1. Add or edit the relevant `data/<ecosystem>/<id>.toml` file. The filename stem must match the entry `id` (lowercased), and the file must live under the directory for its `ecosystem`. A `kind = "proposal"` entry uses its native id (`EIP-197`, `MIP-0003`); a `kind = "spec"` entry uses an `<ecosystem>-<feature>` slug and points `spec` at the canonical protocol specification. Record the normalized `status` on the shared scale alongside the verbatim `native_status`, the `category` and `primitive`, the canonical `spec` URL, and the `sources` you read; cross-ecosystem `equivalent_to` edges and supersession links must be added on both endpoints.
 2. Run `cargo run -p zkr-cli -- validate` and resolve every reported problem. The validator enforces unique identifiers, filename and directory consistency, well-formed `http`/`https` URLs, referential integrity, and symmetric cross-references. This is the same check CI runs on your pull request, so a clean local run is the fastest path to a green build.
 3. Optionally run `cargo run -p zkr-cli -- validate --online` to confirm that every `spec`, `sources`, and implementation URL still resolves before you submit.
 4. Cite a canonical source for every status, title, and relationship you record. This project never authors cryptography: it links to specifications and audited implementations rather than reproducing them, and an entry with no audited implementation records that absence honestly rather than filling it.
 
-The proposal JSON Schema, useful for editor tooling, is available via `cargo run -p zkr-cli -- schema`.
+The catalog-entry JSON Schema, useful for editor tooling, is available via `cargo run -p zkr-cli -- schema`.
 
 ## Adding or Correcting an Audited-Implementation Link
 
-A catalog entry is only as valuable as the audited code it points to. Each implementation is one entry in the proposal's `implementations` array, with `name`, `language`, `url`, an `audited` boolean, and an `audit_ref` linking the audit report or commit when one exists. To add or correct one:
+A catalog entry is only as valuable as the audited code it points to. Each implementation is one item in the entry's `implementations` array, with `name`, `language`, `url`, an `audited` boolean, and an `audit_ref` linking the audit report or commit when one exists. To add or correct one:
 
 1. Set `audited = true` only when you can cite a public audit in `audit_ref`; otherwise record `audited = false` so the gap stays visible. Never paper over a missing or unaudited implementation with code of our own.
 2. Prefer linking the upstream audited library, on-chain precompile, or runtime syscall directly over any fork or re-host: this project depends on audited code, it does not vendor it.
@@ -36,7 +36,7 @@ A catalog entry is only as valuable as the audited code it points to. Each imple
 
 ## Keeping the Catalog Fresh
 
-Upstream proposals change status and move over time, so a recorded `status` or `spec` can rot. `cargo run -p zkr-cli -- drift` compares every entry against its upstream proposal repository and reports any divergence; a scheduled job runs the same check and opens a single tracking issue when it finds drift. Corrections always flow through a normal pull request that edits `data/`---the dataset stays human-maintained, and the automation only ever reports, never writes to the catalog.
+Upstream proposals change status and move over time, so a recorded `status` or `spec` can rot. `cargo run -p zkr-cli -- drift` compares every proposal entry against its upstream proposal repository and reports any divergence (spec entries document a protocol section rather than a numbered proposal, so they are not drift-tracked); a scheduled job runs the same check and opens a single tracking issue when it finds drift. Corrections always flow through a normal pull request that edits `data/`---the dataset stays human-maintained, and the automation only ever reports, never writes to the catalog.
 
 ## Contributing via Pull Requests
 
