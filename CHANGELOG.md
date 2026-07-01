@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-07-01
+
+A bugfix release restoring full-text search on the published catalog.
+
+### Fixed
+
+- Full-text search now loads on the published site. On GitHub Pages the catalog is served from a project subpath rather than the domain root, and the search box failed with a "Could not load search bundle" error because the Pagefind search bundle was requested from an absolute `/pagefind/` path that does not exist there. The search UI now resolves its bundle relative to its own location, so search works wherever the site is hosted, at the domain root or under any subpath.
+
 ## [0.4.0] - 2026-06-27
 
 Broadens coverage from six ecosystems to eighteen. The Rosetta view now distinguishes harness-proven parity from conceptual equivalence, a second curve (BLS12-381) joins the parity harness alongside BN254, the catalog links each demonstrated equivalence to the committed vector that proves it, and coverage expands across the major ZK-native layer-one chains and zkEVM rollups.
@@ -79,6 +87,7 @@ When adding entries to this changelog for future releases:
 3. **Audience**: Write for users, not developers (focus on impact, not implementation)
 4. **Links**: Add comparison links at the bottom, e.g.: `[0.4.0]: https://github.com/maatlabs/zk-rosetta/compare/v0.3.0...v0.4.0`
 
+[0.4.1]: https://github.com/maatlabs/zk-rosetta/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/maatlabs/zk-rosetta/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/maatlabs/zk-rosetta/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/maatlabs/zk-rosetta/compare/v0.1.0...v0.2.0
